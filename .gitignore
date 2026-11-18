@@ -10,13 +10,6 @@ __pycache__/
 .coverage
 .coverage.*
 
-# Virtual environments and local environment files
-.venv/
-venv/
-env/
-.env
-.env.*
-
 # Python packaging and build artifacts
 build/
 dist/
@@ -41,16 +34,19 @@ tmp/
 *.tmp
 *.temp
 
+# Virtual environments and local environment files
+.venv/
+venv/
+env/
+.env
+.env.*
+
 # IDE and editor specific files
 .vscode/
 .idea/
 
-# Git
+# Git, GitHub, and GitLab specific files
 .git/
 
-# GitHub specific files
-.github/instructions
-.github/instructions/
-
-# GitLab specific files
-.gitlab/
+# Repository Specific Files
+tasks/
