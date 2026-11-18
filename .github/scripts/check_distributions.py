@@ -74,34 +74,19 @@ def verify_install(
 		'from importlib import import_module\n'
 		'from importlib.util import find_spec\n'
 		'from importlib.metadata import distribution, PackageNotFoundError\n'
-		'from json import loads\n'
-		'from importlib.machinery import PathFinder\n'
-		'from sys import path as search_path\n'
 		f'import_module({PROJECT!r})\n'
-		f'core = distribution({PROJECT!r})\n'
-		'selection = core.read_text("editable-selection.json")\n'
-		f'if selection is not None: assert set(loads(selection)) == set({selected!r})\n'
 		f'for target, path in {IMPLEMENTATIONS!r}.items():\n'
 		f'    selected = target in {selected!r}\n'
 		f'    module = {PROJECT!r} + "." + path\n'
 		'    assert (find_spec(module) is not None) == selected, module\n'
-		'    parts = module.split(".")\n'
-		'    locations = search_path\n'
-		'    spec = None\n'
-		'    for count in range(1, len(parts) + 1):\n'
-		'        spec = PathFinder.find_spec(".".join(parts[:count]), locations)\n'
-		'        if spec is None:\n'
-		'            break\n'
-		'        locations = spec.submodule_search_locations\n'
-		'    assert (spec is not None) == selected, module\n'
 		'    if selected:\n'
 		'        import_module(module)\n'
 		'    try:\n'
 		f'        installed = distribution({PROJECT!r} + "-" + target)\n'
 		'    except PackageNotFoundError:\n'
-		'        assert selection is not None or not selected, target\n'
+		'        assert not selected, target\n'
 		'    else:\n'
-		'        assert selection is None and selected, target\n'
+		'        assert selected, target\n'
 	)
 	check(
 		[
@@ -212,8 +197,6 @@ def main() -> None:
 			with open_tar(source) as archive:
 				root = archive.getnames()[0].split('/')[0]
 				for filename in (
-					'.dev/scripts/editable_view.py',
-					'.github/scripts/build_backend.py',
 					'.github/scripts/build_distributions.py',
 				):
 					assert archive.getmember(root + '/' + filename).isfile(), filename
@@ -336,7 +319,6 @@ def main() -> None:
 			source.mkdir()
 			for filename in (
 				'setup.py',
-				'pyproject.toml',
 				'README.setup.md',
 				'LICENSE',
 			):
@@ -344,20 +326,11 @@ def main() -> None:
 					ROOT / filename,
 					source / filename,
 				)
-			(source / '.dev' / 'scripts').mkdir(parents=True)
-			copy2(
-				ROOT / '.dev' / 'scripts' / 'editable_view.py',
-				source / '.dev' / 'scripts' / 'editable_view.py',
-			)
 			(source / '.github' / 'scripts').mkdir(parents=True)
-			for filename in (
-				'build_backend.py',
-				'build_distributions.py',
-			):
-				copy2(
-					ROOT / '.github' / 'scripts' / filename,
-					source / '.github' / 'scripts' / filename,
-				)
+			copy2(
+				ROOT / '.github' / 'scripts' / 'build_distributions.py',
+				source / '.github' / 'scripts' / 'build_distributions.py',
+			)
 			copytree(
 				ROOT / 'src',
 				source / 'src',
@@ -370,15 +343,12 @@ def main() -> None:
 			)
 			python = python_in(directory / 'editable')
 			environment['SETUPTOOLS_SCM_PRETEND_VERSION'] = version
-			for index, selected in enumerate((
+			for selected in (
 				(),
 				targets[:1],
 				targets,
-				targets[1:],
-				(),
-				targets,
-			)):
-				environment['DEF_BUILD_TARGET'] = targets[0]
+			):
+				extras = '[' + ','.join(selected) + ']' if selected else ''
 				check(
 					[
 						python,
@@ -388,11 +358,7 @@ def main() -> None:
 						'--find-links',
 						str(dist),
 						'-e',
-						str(source),
-						*([
-							'--config-settings',
-							'EXTRAS=' + ','.join(selected),
-						] if selected else []),
+						str(source) + extras,
 					],
 					directory,
 					environment,
@@ -403,27 +369,6 @@ def main() -> None:
 					environment,
 					selected,
 				)
-				if index == 2:
-					target = targets[0]
-					module = source / 'src' / IMPLEMENTATIONS[target].replace(
-						'.',
-						'/',
-					) / '__init__.py'
-					with module.open(
-						'a',
-						encoding='utf-8',
-					) as stream:
-						stream.write('\nPACKAGING_EDITABLE_PROBE = 200\n')
-					check(
-						[
-							python,
-							'-I',
-							'-c',
-							f'from {PROJECT}.{IMPLEMENTATIONS[target]} import PACKAGING_EDITABLE_PROBE; assert PACKAGING_EDITABLE_PROBE == 200',
-						],
-						directory,
-						environment,
-					)
 			probe.write_text(
 				'VALUE = 200\n',
 				encoding='utf-8',
@@ -437,111 +382,6 @@ def main() -> None:
 				],
 				directory,
 				environment,
-			)
-			added = source / 'src' / '_new_editable_probe.py'
-			added.write_text(
-				'VALUE = 1\n',
-				encoding='utf-8',
-			)
-			check(
-				[
-					python,
-					'-I',
-					'-c',
-					f'from importlib.util import find_spec; assert find_spec("{PROJECT}._new_editable_probe") is None',
-				],
-				directory,
-				environment,
-			)
-			check(
-				[
-					python,
-					'-m',
-					'pip',
-					'install',
-					'-e',
-					str(source),
-					'--config-settings',
-					'EXTRAS=' + ','.join(targets),
-				],
-				directory,
-				environment,
-			)
-			check(
-				[
-					python,
-					'-I',
-					'-c',
-					f'from {PROJECT}._new_editable_probe import VALUE; assert VALUE == 1',
-				],
-				directory,
-				environment,
-			)
-			verify_install(
-				python,
-				directory,
-				environment,
-				targets,
-			)
-			for invalid in (
-				'unknown',
-				targets[0] + ',',
-			):
-				rejected = run(
-					[
-						python,
-						'-m',
-						'pip',
-						'install',
-						'-e',
-						str(source),
-						'--config-settings',
-						'EXTRAS=' + invalid,
-					],
-					cwd=directory,
-					env=environment,
-					capture_output=True,
-					text=True,
-				)
-				assert rejected.returncode != 0, rejected.stdout
-				assert 'Unknown EXTRAS entry' in rejected.stdout + rejected.stderr
-			verify_install(
-				python,
-				directory,
-				environment,
-				targets,
-			)
-			next_version = '9999.0.0' if version != '9999.0.0' else '9999.0.1'
-			environment['SETUPTOOLS_SCM_PRETEND_VERSION'] = next_version
-			check(
-				[
-					python,
-					'-m',
-					'pip',
-					'install',
-					'-e',
-					str(source),
-					'--config-settings',
-					'EXTRAS=' + ','.join(targets),
-				],
-				directory,
-				environment,
-			)
-			check(
-				[
-					python,
-					'-I',
-					'-c',
-					f'from importlib.metadata import version; assert version({PROJECT!r}) == {next_version!r}',
-				],
-				directory,
-				environment,
-			)
-			verify_install(
-				python,
-				directory,
-				environment,
-				targets,
 			)
 			other = python_in(directory / 'other-editable')
 			check(
@@ -571,9 +411,7 @@ def main() -> None:
 					'--find-links',
 					str(dist),
 					'-e',
-					str(source),
-					'--config-settings',
-					'EXTRAS=' + targets[0],
+					str(source) + '[' + targets[0] + ']',
 				],
 				directory,
 				environment,
@@ -584,13 +422,7 @@ def main() -> None:
 				environment,
 				targets[:1],
 			)
-			verify_install(
-				python,
-				directory,
-				environment,
-				targets,
-			)
-	print(f'{PROJECT}: ownership, sdist rebuilds, four install combinations and lifecycle checks passed')
+	print(f'{PROJECT}: ownership, sdist rebuilds and editable extras checks passed')
 	return
 
 

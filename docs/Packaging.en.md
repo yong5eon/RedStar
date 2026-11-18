@@ -27,34 +27,26 @@ Download the repository, activate a development virtual environment, and run the
 python -m pip install -e .
 ```
 
-This connects only the common code and built-in Python server. To also work on the Uvicorn or Gunicorn adapters, list their names in `EXTRAS`. The following commands are separate examples: the first selects Uvicorn only, and the second selects both adapters.
+This connects only the common code and built-in Python server. To also use the Uvicorn or Gunicorn adapters, list their names with standard extras syntax. The following commands are separate examples: the first selects Uvicorn only, and the second selects both adapters.
 
 ```shell
-python -m pip install -e . --config-settings EXTRAS=Uvicorn
-python -m pip install -e . --config-settings EXTRAS=Gunicorn,Uvicorn
+python -m pip install -e ".[Uvicorn]"
+python -m pip install -e ".[Gunicorn,Uvicorn]"
 ```
 
-Each run replaces the selection. For example, running with `EXTRAS=Uvicorn` after selecting both adapters removes the Gunicorn code from the development environment. Running without `EXTRAS` leaves only the common code and built-in Python server. Names are case-insensitive; unknown names produce an error. Required external libraries are installed, but libraries for deselected adapters are not automatically removed.
+The selected extra installs the matching-version `DefChord-Uvicorn` or `DefChord-Gunicorn` wheel and its external libraries. Because these wheels may not be on PyPI, point pip at the `dist/` directory built in [Build and validate](#build-and-validate) with `--find-links dist`. The editable installation connects the repository's common code. Reinstalling with another extra does not automatically remove a previously installed implementation; uninstall it explicitly when it is no longer needed.
 
 ### Try your changes
 
 1. Edit the code under `src/`.
 2. Start your application or tests again in the same virtual environment to check the result. Code in an already running program is not automatically reloaded.
-3. If you add files or change the installation configuration, repeat the installation command with the desired `EXTRAS`.
+3. If you add files or change the installation configuration, repeat the installation command with the desired extras.
 
-The command connects the sources already on your computer. It does not fetch remote changes or force upgrades of external libraries. To select source code, use `--config-settings EXTRAS=Uvicorn` as shown above, not `pip install -e ".[Uvicorn]"`.
+The command connects the sources already on your computer. It does not fetch remote changes; pip resolves implementation distributions and external libraries in its standard way. The Uvicorn and Gunicorn adapter code is not linked editably; the installed wheels are used.
 
 ### How the development connection works
 
-Only selected code is connected to the environment, and your IDE can find it too. Connections are managed automatically; you do not need to create links or add IDE search paths. Restart the language server if the IDE does not find the installed code right away. Multiple environments sharing the same sources keep their selections separate.
-
-Refresh keeps unchanged file connections and atomically replaces each changed connection. It removes only deselected managed files and preserves other files such as `.DS_Store`. Switching all files simultaneously is not guaranteed.
-
-If creating a connection fails, resolve the cause and repeat the installation command with the desired `EXTRAS`. The next refresh also reconciles files added before the failure with your selection.
-
-Each file's old bytecode cache is removed before replacing its connection. If a later connection fails, retrying therefore does not leave an already replaced file using stale cached code.
-
-On Windows, hard links are used if symbolic-link permissions are unavailable. In that case, keep the sources and virtual environment on the same drive. This connection management applies only to development installations, not regular wheel installations.
+The editable installation connects the common code with setuptools' PEP 660 `strict` mode, which `setup.py` fixes. After changing the installation configuration, repeat the installation command, and restart the language server if the IDE does not find the installed code right away. Each virtual environment keeps its own installation state.
 
 ## Build and validate
 
@@ -68,6 +60,8 @@ python .github/scripts/build_distributions.py
 python .github/scripts/check_distributions.py --editable
 python -m twine check --strict dist/*
 ```
+
+Build dependencies are declared in `setup.py` using `setup_requires`. With no `pyproject.toml`, pip uses its default setuptools backend.
 
 The build script fixes the version once, then creates each target's wheel and sdist in `dist/`. Use an output directory without other versions' artifacts. `--outdir` selects another directory; `--wheel` builds only wheels.
 

@@ -122,8 +122,10 @@ To see an error hook return a custom response, start the server and request `GET
 
 Run the repository tests after installing the checkout in editable mode:
 
+First build `dist/` from the repository root with `python .github/scripts/build_distributions.py`.
+
 ```shell
-python -m pip install -e . --config-settings EXTRAS=Gunicorn,Uvicorn
+python -m pip install --find-links dist -e ".[Gunicorn,Uvicorn]"
 python -m unittest discover -s tests
 ```
 

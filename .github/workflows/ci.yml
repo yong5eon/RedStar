@@ -76,7 +76,7 @@ jobs:
           changed = check_output(
               [
                   'git', 'diff', '--name-only', '--no-renames', base, environ['GITHUB_SHA'],
-                  '--', 'src/', 'setup.py', 'setup.cfg', 'pyproject.toml', 'MANIFEST.in', '.dev/scripts/', '.github/scripts/*.py',
+                  '--', 'src/', 'setup.py', 'setup.cfg', 'pyproject.toml', 'MANIFEST.in', '.github/scripts/*.py',
               ],
               text=True,
           ).strip()
@@ -245,7 +245,6 @@ jobs:
         run: python .github/scripts/check_distributions.py --editable
       - name: Test release preparation
         run: |
-          python -m unittest discover -s .dev/scripts/tests -t .dev/scripts -p 'test_*.py'
           python -m unittest discover -s .github/scripts/tests -t .github/scripts -p 'test_*.py'
       - name: Normalize source archive timestamps
         run: |

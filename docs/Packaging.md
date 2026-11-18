@@ -27,34 +27,26 @@ flowchart LR
 python -m pip install -e .
 ```
 
-위 명령은 공통 코드와 기본 Python 서버만 연결합니다. Uvicorn이나 Gunicorn 어댑터도 수정하고 싶다면 `EXTRAS`에 함께 사용할 이름을 적으세요. 다음 두 명령은 각각 Uvicorn만 선택하는 예시와 두 어댑터를 모두 선택하는 예시입니다.
+위 명령은 공통 코드와 기본 Python 서버만 연결합니다. Uvicorn이나 Gunicorn 어댑터도 사용하려면 표준 extras 문법으로 함께 사용할 이름을 적으세요. 다음 두 명령은 각각 Uvicorn만 선택하는 예시와 두 어댑터를 모두 선택하는 예시입니다.
 
 ```shell
-python -m pip install -e . --config-settings EXTRAS=Uvicorn
-python -m pip install -e . --config-settings EXTRAS=Gunicorn,Uvicorn
+python -m pip install -e ".[Uvicorn]"
+python -m pip install -e ".[Gunicorn,Uvicorn]"
 ```
 
-선택은 실행할 때마다 새 목록으로 바뀝니다. 예를 들어 두 어댑터를 선택한 뒤 `EXTRAS=Uvicorn`으로 다시 실행하면 Gunicorn 코드는 개발 환경에서 빠집니다. `EXTRAS` 없이 실행하면 공통 코드와 기본 Python 서버만 남습니다. 이름은 대소문자를 구분하지 않으며, 잘못된 이름은 오류로 알려줍니다. 선택한 어댑터에 필요한 외부 라이브러리도 설치하지만, 선택에서 뺀 외부 라이브러리를 자동으로 삭제하지는 않습니다.
+선택한 extra는 같은 버전의 `DefChord-Uvicorn` 또는 `DefChord-Gunicorn` wheel과 외부 라이브러리를 설치합니다. 이 wheel은 PyPI에 없을 수 있으므로 [빌드와 검증](#빌드와-검증)에서 만든 `dist/`를 `--find-links dist`로 지정하세요. editable로 연결되는 것은 저장소의 공통 코드입니다. 다른 extra로 다시 설치해도 pip가 기존 구현체 배포물을 자동으로 제거하지는 않으니, 필요 없는 구현체는 해당 배포물을 직접 제거하세요.
 
 ### 수정한 코드 확인하기
 
 1. `src/` 아래의 코드를 수정합니다.
 2. 같은 가상환경에서 애플리케이션이나 테스트를 새로 실행해 수정 결과를 확인합니다. 이미 실행 중인 프로그램의 코드는 자동으로 다시 로드되지 않습니다.
-3. 파일을 새로 추가하거나 설치 구성을 바꿨다면 원하는 `EXTRAS`를 포함해 설치 명령을 다시 실행합니다.
+3. 파일을 새로 추가하거나 설치 구성을 바꿨다면 원하는 extras를 포함해 설치 명령을 다시 실행합니다.
 
-이 명령은 컴퓨터에 있는 현재 소스를 연결할 뿐, 원격 저장소의 변경을 가져오거나 외부 라이브러리를 강제로 업그레이드하지 않습니다. 소스를 선택할 때는 `pip install -e ".[Uvicorn]"` 대신 위의 `--config-settings EXTRAS=Uvicorn`을 사용하세요.
+이 명령은 컴퓨터에 있는 현재 소스를 연결할 뿐, 원격 저장소의 변경을 가져오지 않습니다. 구현체 배포물과 외부 라이브러리는 pip가 일반적인 방식으로 확인합니다. Uvicorn·Gunicorn 어댑터의 소스는 editable로 연결되지 않고 설치된 wheel이 사용됩니다.
 
 ### 개발 환경의 연결 방식과 주의사항
 
-선택한 코드만 가상환경에 연결하므로 IDE에서도 해당 코드를 찾을 수 있습니다. 연결은 자동으로 관리되며 직접 링크를 만들거나 IDE 검색 경로를 추가할 필요가 없습니다. IDE가 설치 결과를 바로 찾지 못하면 Language Server를 재시작하세요. 같은 소스를 사용하는 가상환경이 여러 개여도 각 환경의 선택은 따로 유지됩니다.
-
-갱신할 때는 바뀌지 않은 파일의 연결을 유지하고 바뀐 파일의 연결만 한 번에 교체합니다. 선택에서 빠진 관리 파일만 제거하고 `.DS_Store` 같은 다른 파일은 보존합니다. 다만 전체 파일을 동시에 전환하는 것은 보장하지 않습니다.
-
-연결 중 오류가 발생하면 원인을 해결한 뒤 원하는 `EXTRAS`로 설치 명령을 다시 실행하세요. 도중에 추가된 파일도 다음 갱신에서 선택 목록에 맞게 정리합니다.
-
-연결을 교체하기 전에 해당 파일의 이전 실행 캐시를 정리합니다. 따라서 일부 연결을 교체한 뒤 실패하더라도 재시도 후 교체된 파일의 오래된 캐시가 사용되는 문제를 방지합니다.
-
-Windows에서는 심볼릭 링크 권한이 없으면 하드 링크를 사용합니다. 이 경우 소스와 가상환경을 같은 드라이브에 두세요. 이러한 연결 관리는 개발용 설치에만 적용되며 일반 wheel 설치에는 포함되지 않습니다.
+editable 설치는 setuptools의 PEP 660 `strict` 방식으로 공통 코드를 연결하며, 이 방식은 `setup.py`가 고정합니다. 설치 구성을 바꾼 뒤에는 설치 명령을 다시 실행하고, IDE가 설치 결과를 바로 찾지 못하면 Language Server를 재시작하세요. 각 가상환경의 설치 상태는 독립적입니다.
 
 ## 빌드와 검증
 
@@ -68,6 +60,8 @@ python .github/scripts/build_distributions.py
 python .github/scripts/check_distributions.py --editable
 python -m twine check --strict dist/*
 ```
+
+빌드 의존성은 `setup.py`의 `setup_requires`에 선언하며, `pyproject.toml` 없이 pip의 기본 setuptools 백엔드를 사용합니다.
 
 빌드 스크립트는 버전을 한 번 확정하고 대상별 wheel과 sdist를 `dist/`에 만듭니다. 다른 버전의 산출물이 섞이지 않은 출력 디렉터리를 사용하세요. `--outdir`로 별도 위치를 선택할 수 있고 `--wheel`은 wheel만 만듭니다.
 

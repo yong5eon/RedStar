@@ -122,8 +122,10 @@ python samples/Sample.py
 
 변경 후 저장소 테스트는 editable 설치 후 실행합니다.
 
+먼저 저장소 루트에서 `python .github/scripts/build_distributions.py`로 `dist/`를 만드세요.
+
 ```shell
-python -m pip install -e . --config-settings EXTRAS=Gunicorn,Uvicorn
+python -m pip install --find-links dist -e ".[Gunicorn,Uvicorn]"
 python -m unittest discover -s tests
 ```
 
