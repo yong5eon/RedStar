@@ -122,11 +122,9 @@ To see an error hook return a custom response, start the server and request `GET
 
 Run the repository tests after installing the checkout in editable mode:
 
-First build `dist/` from the repository root with `python .github/scripts/build_distributions.py`.
-
 ```shell
-python -m pip install --find-links dist -e ".[Gunicorn,Uvicorn]"
+python -m pip install -e ".[Gunicorn,Uvicorn]"
 python -m unittest discover -s tests
 ```
 
-The full test suite imports optional adapters, so install both implementations with the command above. Plain `python -m pip install -e .` connects only the common code and built-in Python server. After editing code, run the tests again to check the result. Repeat the installation command with the desired selection after adding files or changing the installation configuration. See [installation isolation, development and distribution](./Packaging.en.md) for development instructions. Gunicorn/Uvicorn-specific execution and tests remain subject to server platform requirements.
+The full test suite imports optional adapters, so install both implementations with the command above. Plain `python -m pip install -e .` links the implementation sources but does not install the Gunicorn and Uvicorn libraries. After editing code, run the tests again to check the result. Repeat the installation command with the desired selection after adding files or changing the installation configuration. See [installation isolation, development and distribution](./Packaging.en.md) for development instructions. Gunicorn/Uvicorn-specific execution and tests remain subject to server platform requirements.

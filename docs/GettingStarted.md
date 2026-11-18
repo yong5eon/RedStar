@@ -122,11 +122,9 @@ python samples/Sample.py
 
 변경 후 저장소 테스트는 editable 설치 후 실행합니다.
 
-먼저 저장소 루트에서 `python .github/scripts/build_distributions.py`로 `dist/`를 만드세요.
-
 ```shell
-python -m pip install --find-links dist -e ".[Gunicorn,Uvicorn]"
+python -m pip install -e ".[Gunicorn,Uvicorn]"
 python -m unittest discover -s tests
 ```
 
-전체 테스트는 선택 어댑터를 import하므로 위 명령으로 두 구현체를 함께 설치해야 합니다. `python -m pip install -e .`만 실행하면 공통 코드와 기본 Python 서버만 연결됩니다. 코드를 수정한 뒤 테스트를 새로 실행해 결과를 확인하세요. 새 파일을 추가하거나 설치 구성을 바꿨다면 원하는 목록으로 설치 명령을 다시 실행합니다. 자세한 개발 방법은 [설치 격리와 개발·배포](./Packaging.md)를 참고하세요. Gunicorn·Uvicorn 전용 테스트나 실행은 서버의 플랫폼 조건을 따릅니다.
+전체 테스트는 선택 어댑터를 import하므로 위 명령으로 두 구현체를 함께 설치해야 합니다. `python -m pip install -e .`만 실행하면 구현체 소스는 연결되지만 Gunicorn·Uvicorn 외부 라이브러리는 설치되지 않습니다. 코드를 수정한 뒤 테스트를 새로 실행해 결과를 확인하세요. 새 파일을 추가하거나 설치 구성을 바꿨다면 원하는 목록으로 설치 명령을 다시 실행합니다. 자세한 개발 방법은 [설치 격리와 개발·배포](./Packaging.md)를 참고하세요. Gunicorn·Uvicorn 전용 테스트나 실행은 서버의 플랫폼 조건을 따릅니다.

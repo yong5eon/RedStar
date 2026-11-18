@@ -69,7 +69,9 @@ def verify_install(
 	directory: Path,
 	environment: dict[str, str],
 	selected: tuple[str, ...],
+	editable: bool = False,
 ) -> None:
+	# An editable core contains every implementation source; extras only add the external libraries.
 	code = (
 		'from importlib import import_module\n'
 		'from importlib.util import find_spec\n'
@@ -78,15 +80,17 @@ def verify_install(
 		f'for target, path in {IMPLEMENTATIONS!r}.items():\n'
 		f'    selected = target in {selected!r}\n'
 		f'    module = {PROJECT!r} + "." + path\n'
-		'    assert (find_spec(module) is not None) == selected, module\n'
+		f'    assert (find_spec(module) is not None) == ({editable!r} or selected), module\n'
 		'    if selected:\n'
 		'        import_module(module)\n'
+		f'    if {editable!r}:\n'
+		'        assert (find_spec(target.lower()) is not None) == selected, target\n'
 		'    try:\n'
 		f'        installed = distribution({PROJECT!r} + "-" + target)\n'
 		'    except PackageNotFoundError:\n'
-		'        assert not selected, target\n'
+		f'        assert {editable!r} or not selected, target\n'
 		'    else:\n'
-		'        assert selected, target\n'
+		f'        assert not {editable!r} and selected, target\n'
 	)
 	check(
 		[
@@ -355,8 +359,6 @@ def main() -> None:
 						'-m',
 						'pip',
 						'install',
-						'--find-links',
-						str(dist),
 						'-e',
 						str(source) + extras,
 					],
@@ -368,6 +370,7 @@ def main() -> None:
 					directory,
 					environment,
 					selected,
+					editable=True,
 				)
 			probe.write_text(
 				'VALUE = 200\n',
@@ -401,6 +404,7 @@ def main() -> None:
 				directory,
 				environment,
 				(),
+				editable=True,
 			)
 			check(
 				[
@@ -408,8 +412,6 @@ def main() -> None:
 					'-m',
 					'pip',
 					'install',
-					'--find-links',
-					str(dist),
 					'-e',
 					str(source) + '[' + targets[0] + ']',
 				],
@@ -421,6 +423,7 @@ def main() -> None:
 				directory,
 				environment,
 				targets[:1],
+				editable=True,
 			)
 	print(f'{PROJECT}: ownership, sdist rebuilds and editable extras checks passed')
 	return

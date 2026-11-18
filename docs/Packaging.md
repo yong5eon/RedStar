@@ -27,14 +27,14 @@ flowchart LR
 python -m pip install -e .
 ```
 
-위 명령은 공통 코드와 기본 Python 서버만 연결합니다. Uvicorn이나 Gunicorn 어댑터도 사용하려면 표준 extras 문법으로 함께 사용할 이름을 적으세요. 다음 두 명령은 각각 Uvicorn만 선택하는 예시와 두 어댑터를 모두 선택하는 예시입니다.
+위 명령은 공통 코드와 기본 Python 서버를 연결합니다. Uvicorn이나 Gunicorn 어댑터의 외부 라이브러리도 설치하려면 표준 extras 문법으로 함께 사용할 이름을 적으세요. 다음 두 명령은 각각 Uvicorn만 선택하는 예시와 두 어댑터를 모두 선택하는 예시입니다.
 
 ```shell
 python -m pip install -e ".[Uvicorn]"
 python -m pip install -e ".[Gunicorn,Uvicorn]"
 ```
 
-선택한 extra는 같은 버전의 `DefChord-Uvicorn` 또는 `DefChord-Gunicorn` wheel과 외부 라이브러리를 설치합니다. 이 wheel은 PyPI에 없을 수 있으므로 [빌드와 검증](#빌드와-검증)에서 만든 `dist/`를 `--find-links dist`로 지정하세요. editable로 연결되는 것은 저장소의 공통 코드입니다. 다른 extra로 다시 설치해도 pip가 기존 구현체 배포물을 자동으로 제거하지는 않으니, 필요 없는 구현체는 해당 배포물을 직접 제거하세요.
+editable 설치는 배포용 분리 구조와 달리 저장소의 공통 코드와 Gunicorn·Uvicorn 구현체 소스를 모두 연결하며, 선택한 extra는 해당 구현체의 외부 라이브러리만 설치합니다. 따라서 아직 배포되지 않은 `DefChord-Uvicorn`·`DefChord-Gunicorn` 배포물이 없어도 설치할 수 있습니다. 다른 extra로 다시 설치해도 pip가 기존 외부 라이브러리를 자동으로 제거하지는 않습니다.
 
 ### 수정한 코드 확인하기
 
@@ -42,11 +42,11 @@ python -m pip install -e ".[Gunicorn,Uvicorn]"
 2. 같은 가상환경에서 애플리케이션이나 테스트를 새로 실행해 수정 결과를 확인합니다. 이미 실행 중인 프로그램의 코드는 자동으로 다시 로드되지 않습니다.
 3. 파일을 새로 추가하거나 설치 구성을 바꿨다면 원하는 extras를 포함해 설치 명령을 다시 실행합니다.
 
-이 명령은 컴퓨터에 있는 현재 소스를 연결할 뿐, 원격 저장소의 변경을 가져오지 않습니다. 구현체 배포물과 외부 라이브러리는 pip가 일반적인 방식으로 확인합니다. Uvicorn·Gunicorn 어댑터의 소스는 editable로 연결되지 않고 설치된 wheel이 사용됩니다.
+이 명령은 컴퓨터에 있는 현재 소스를 연결할 뿐, 원격 저장소의 변경을 가져오지 않습니다. 외부 라이브러리는 pip가 일반적인 방식으로 확인합니다. Uvicorn·Gunicorn 어댑터의 소스도 editable로 함께 연결됩니다.
 
 ### 개발 환경의 연결 방식과 주의사항
 
-editable 설치는 setuptools의 PEP 660 `strict` 방식으로 공통 코드를 연결하며, 이 방식은 `setup.py`가 고정합니다. 설치 구성을 바꾼 뒤에는 설치 명령을 다시 실행하고, IDE가 설치 결과를 바로 찾지 못하면 Language Server를 재시작하세요. 각 가상환경의 설치 상태는 독립적입니다.
+`DEF_BUILD_TARGET` 환경 변수 없이 저장소에서 설치하는 빌드를 개발용으로 취급합니다. 배포 wheel과 sdist는 `build_distributions.py`가 대상을 명시하므로 기존의 분리 구조를 유지합니다. 설치 구성을 바꾼 뒤에는 설치 명령을 다시 실행하고, IDE가 설치 결과를 바로 찾지 못하면 Language Server를 재시작하세요. 각 가상환경의 설치 상태는 독립적입니다.
 
 ## 빌드와 검증
 

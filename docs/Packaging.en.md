@@ -27,14 +27,14 @@ Download the repository, activate a development virtual environment, and run the
 python -m pip install -e .
 ```
 
-This connects only the common code and built-in Python server. To also use the Uvicorn or Gunicorn adapters, list their names with standard extras syntax. The following commands are separate examples: the first selects Uvicorn only, and the second selects both adapters.
+This connects the common code and built-in Python server. To also install the Uvicorn or Gunicorn adapter libraries, list their names with standard extras syntax. The following commands are separate examples: the first selects Uvicorn only, and the second selects both adapters.
 
 ```shell
 python -m pip install -e ".[Uvicorn]"
 python -m pip install -e ".[Gunicorn,Uvicorn]"
 ```
 
-The selected extra installs the matching-version `DefChord-Uvicorn` or `DefChord-Gunicorn` wheel and its external libraries. Because these wheels may not be on PyPI, point pip at the `dist/` directory built in [Build and validate](#build-and-validate) with `--find-links dist`. The editable installation connects the repository's common code. Reinstalling with another extra does not automatically remove a previously installed implementation; uninstall it explicitly when it is no longer needed.
+Unlike the distributed split layout, the editable installation links the repository's common code and all Gunicorn and Uvicorn implementation sources; the selected extra installs only that implementation's external libraries. It therefore works without published `DefChord-Uvicorn` or `DefChord-Gunicorn` distributions. Reinstalling with another extra does not automatically remove previously installed external libraries.
 
 ### Try your changes
 
@@ -42,11 +42,11 @@ The selected extra installs the matching-version `DefChord-Uvicorn` or `DefChord
 2. Start your application or tests again in the same virtual environment to check the result. Code in an already running program is not automatically reloaded.
 3. If you add files or change the installation configuration, repeat the installation command with the desired extras.
 
-The command connects the sources already on your computer. It does not fetch remote changes; pip resolves implementation distributions and external libraries in its standard way. The Uvicorn and Gunicorn adapter code is not linked editably; the installed wheels are used.
+The command connects the sources already on your computer. It does not fetch remote changes; pip resolves external libraries in its standard way. The Uvicorn and Gunicorn adapter sources are linked editably as well.
 
 ### How the development connection works
 
-The editable installation connects the common code with setuptools' PEP 660 `strict` mode, which `setup.py` fixes. After changing the installation configuration, repeat the installation command, and restart the language server if the IDE does not find the installed code right away. Each virtual environment keeps its own installation state.
+A build from the repository without the `DEF_BUILD_TARGET` environment variable is treated as a development build. Distribution wheels and sdists keep the split layout because `build_distributions.py` sets the target explicitly. After changing the installation configuration, repeat the installation command, and restart the language server if the IDE does not find the installed code right away. Each virtual environment keeps its own installation state.
 
 ## Build and validate
 

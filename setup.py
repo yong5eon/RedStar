@@ -10,7 +10,6 @@ from setuptools import (
 	setup,
 )
 from setuptools.command.build import build
-from setuptools.command.editable_wheel import editable_wheel
 from setuptools.command.egg_info import egg_info
 from setuptools.command.sdist import sdist
 
@@ -43,6 +42,8 @@ if TARGET not in (
 	raise ValueError('Unknown DEF_BUILD_TARGET: {!r}'.format(TARGET))
 if ARCHIVE_TARGET is not None and TARGET != ARCHIVE_TARGET:
 	raise ValueError('Cannot change the build target of a source distribution')
+# Release builds always set the target explicitly; a bare checkout build (pip install -e .) is a development build.
+EDITABLE: bool = 'DEF_BUILD_TARGET' not in environ and ARCHIVE_TARGET is None
 
 NAME = PACKAGE if TARGET == 'core' else '{}-{}'.format(
 	PACKAGE,
@@ -53,7 +54,7 @@ PACKAGE_DIR = {PACKAGE: SOURCE} if TARGET == 'core' else {}
 
 for package in find_packages(SOURCE):
 	selected = (
-		not any(
+		EDITABLE or not any(
 			package == path or package.startswith(path + '.')
 			for path in IMPLEMENTATIONS.values()
 		)
@@ -157,26 +158,15 @@ class TargetDistribution(Distribution):
 			*DEPENDENCIES[TARGET],
 		]
 		self.extras_require = {
-			target: ['{}-{}=={}'.format(
-				PACKAGE,
-				target,
-				version,
-			)]
+			target: (
+				DEPENDENCIES[target] if EDITABLE else ['{}-{}=={}'.format(
+					PACKAGE,
+					target,
+					version,
+				)]
+			)
 			for target in IMPLEMENTATIONS
 		} if TARGET == 'core' else {}
-		return
-
-
-class TargetEditableWheel(editable_wheel):
-	def finalize_options(self) -> None:
-		super().finalize_options()
-		mode = 'strict'
-		if self.mode not in (
-			None,
-			mode,
-		):
-			raise ValueError('This build target requires {} editable mode'.format(mode))
-		self.mode = mode
 		return
 
 
@@ -202,7 +192,6 @@ setup(
 		'build': TargetBuild,
 		'egg_info': TargetEggInfo,
 		'sdist': TargetSdist,
-		'editable_wheel': TargetEditableWheel,
 	},
 	packages=PACKAGES,
 	package_dir=PACKAGE_DIR,
