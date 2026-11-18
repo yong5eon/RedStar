@@ -58,6 +58,17 @@ if ARCHIVE_TARGET is not None and TARGET != ARCHIVE_TARGET:
 
 VERSION: str = get_version(
 	dist_name=PACKAGE,
+	git_describe_command=[
+		'git',
+		'describe',
+		'--dirty',
+		'--tags',
+		'--long',
+		'--match',
+		'[0-9]*.[0-9]*',
+		'--match',
+		'v[0-9]*.[0-9]*',
+	],
 	tag_regex=r'^v?(?P<version>[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?(?:(?:rc|\.post)[0-9]+)?)$',
 )
 NAME = PACKAGE if TARGET == 'core' else '{}-{}'.format(
