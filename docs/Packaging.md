@@ -46,7 +46,7 @@ editable 설치는 배포용 분리 구조와 달리 저장소의 공통 코드�
 
 ### 개발 환경의 연결 방식과 주의사항
 
-`DEF_BUILD_TARGET` 환경 변수 없이 저장소에서 설치하는 빌드를 개발용으로 취급합니다. 배포 wheel과 sdist는 `build_distributions.py`가 대상을 명시하므로 기존의 분리 구조를 유지합니다. 설치 구성을 바꾼 뒤에는 설치 명령을 다시 실행하고, IDE가 설치 결과를 바로 찾지 못하면 Language Server를 재시작하세요. 각 가상환경의 설치 상태는 독립적입니다.
+`DEF_BUILD_TARGET` 환경 변수 없이 저장소에서 설치하는 빌드를 개발용으로 취급합니다. 배포 wheel과 sdist는 `scripts/build.py`가 대상을 명시하므로 기존의 분리 구조를 유지합니다. 설치 구성을 바꾼 뒤에는 설치 명령을 다시 실행하고, IDE가 설치 결과를 바로 찾지 못하면 Language Server를 재시작하세요. 각 가상환경의 설치 상태는 독립적입니다.
 
 ## 빌드와 검증
 
@@ -56,7 +56,7 @@ editable 설치는 배포용 분리 구조와 달리 저장소의 공통 코드�
 
 ```shell
 python -m pip install "pip>=23" build "setuptools>=77" "setuptools-scm>=8,<10" wheel twine
-python .github/scripts/build_distributions.py
+python scripts/build.py
 python .github/scripts/check_distributions.py --editable
 python -m twine check --strict dist/*
 ```

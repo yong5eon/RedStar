@@ -4,12 +4,15 @@ from json import load
 from os import environ
 from pathlib import Path
 from shutil import copy2
+from sys import path as sys_path
 from tarfile import open as open_tar
 from urllib.error import HTTPError
 from urllib.request import urlopen
 from zipfile import ZipFile
 
-from build_distributions import (
+sys_path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
+
+from build import (
 	IMPLEMENTATIONS,
 	PROJECT,
 )

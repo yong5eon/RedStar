@@ -90,7 +90,7 @@ class TargetEggInfo(egg_info):
 	def find_sources(self) -> None:
 		super().find_sources()
 		self.filelist.extend([
-			'.github/scripts/build_distributions.py',
+			'scripts/build.py',
 		])
 		self.filelist.sort()
 		self.filelist.remove_duplicates()

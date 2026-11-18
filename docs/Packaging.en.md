@@ -46,7 +46,7 @@ The command connects the sources already on your computer. It does not fetch rem
 
 ### How the development connection works
 
-A build from the repository without the `DEF_BUILD_TARGET` environment variable is treated as a development build. Distribution wheels and sdists keep the split layout because `build_distributions.py` sets the target explicitly. After changing the installation configuration, repeat the installation command, and restart the language server if the IDE does not find the installed code right away. Each virtual environment keeps its own installation state.
+A build from the repository without the `DEF_BUILD_TARGET` environment variable is treated as a development build. Distribution wheels and sdists keep the split layout because `scripts/build.py` sets the target explicitly. After changing the installation configuration, repeat the installation command, and restart the language server if the IDE does not find the installed code right away. Each virtual environment keeps its own installation state.
 
 ## Build and validate
 
@@ -56,7 +56,7 @@ Build and validate all distributions from the repository root:
 
 ```shell
 python -m pip install "pip>=23" build "setuptools>=77" "setuptools-scm>=8,<10" wheel twine
-python .github/scripts/build_distributions.py
+python scripts/build.py
 python .github/scripts/check_distributions.py --editable
 python -m twine check --strict dist/*
 ```

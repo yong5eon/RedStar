@@ -76,7 +76,7 @@ jobs:
           changed = check_output(
               [
                   'git', 'diff', '--name-only', '--no-renames', base, environ['GITHUB_SHA'],
-                  '--', 'src/', 'setup.py', 'setup.cfg', 'pyproject.toml', 'MANIFEST.in', '.github/scripts/*.py',
+                  '--', 'src/', 'setup.py', 'setup.cfg', 'pyproject.toml', 'MANIFEST.in', 'scripts/*.py', '.github/scripts/*.py',
               ],
               text=True,
           ).strip()
@@ -232,13 +232,13 @@ jobs:
         run: |
           if [ "$RELEASE_BUILD" = "true" ]; then
             if [ "$NEW_VERSION" = "true" ]; then
-              SETUPTOOLS_SCM_PRETEND_VERSION="$RELEASE_VERSION" python .github/scripts/build_distributions.py
+              SETUPTOOLS_SCM_PRETEND_VERSION="$RELEASE_VERSION" python scripts/build.py
             else
-              SETUPTOOLS_SCM_PRETEND_VERSION="$RELEASE_VERSION" python .github/scripts/build_distributions.py --wheel
+              SETUPTOOLS_SCM_PRETEND_VERSION="$RELEASE_VERSION" python scripts/build.py --wheel
             fi
             python -m wheel tags --build "$WHEEL_BUILD" --remove dist/*.whl
           else
-            python .github/scripts/build_distributions.py
+            python scripts/build.py
           fi
           python -m twine check --strict dist/*
       - name: Verify installation isolation and editable development

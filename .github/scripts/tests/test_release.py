@@ -20,9 +20,12 @@ from unittest import (
 )
 from unittest.mock import patch
 from urllib.error import HTTPError
+from sys import path as sys_path
 from zipfile import ZipFile
 
-from build_distributions import (
+sys_path.insert(0, str(Path(__file__).resolve().parents[3] / 'scripts'))
+
+from build import (
 	IMPLEMENTATIONS,
 	PROJECT,
 )

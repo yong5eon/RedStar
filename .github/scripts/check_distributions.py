@@ -9,13 +9,18 @@ from shutil import (
 	ignore_patterns,
 )
 from subprocess import run
-from sys import executable
+from sys import (
+	executable,
+	path as sys_path,
+)
 from tarfile import open as open_tar
 from tempfile import TemporaryDirectory
 from venv import EnvBuilder
 from zipfile import ZipFile
 
-from build_distributions import (
+sys_path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
+
+from build import (
 	IMPLEMENTATIONS,
 	PROJECT,
 	ROOT,
@@ -201,7 +206,7 @@ def main() -> None:
 			with open_tar(source) as archive:
 				root = archive.getnames()[0].split('/')[0]
 				for filename in (
-					'.github/scripts/build_distributions.py',
+					'scripts/build.py',
 				):
 					assert archive.getmember(root + '/' + filename).isfile(), filename
 			rebuilt = directory / f'rebuilt-{index}'
@@ -330,10 +335,10 @@ def main() -> None:
 					ROOT / filename,
 					source / filename,
 				)
-			(source / '.github' / 'scripts').mkdir(parents=True)
+			(source / 'scripts').mkdir()
 			copy2(
-				ROOT / '.github' / 'scripts' / 'build_distributions.py',
-				source / '.github' / 'scripts' / 'build_distributions.py',
+				ROOT / 'scripts' / 'build.py',
+				source / 'scripts' / 'build.py',
 			)
 			copytree(
 				ROOT / 'src',

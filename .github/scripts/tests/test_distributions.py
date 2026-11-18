@@ -5,7 +5,10 @@ from subprocess import (
 	STDOUT,
 	check_output,
 )
-from sys import executable
+from sys import (
+	executable,
+	path as sys_path,
+)
 from tempfile import TemporaryDirectory
 from unittest import (
 	TestCase,
@@ -13,7 +16,9 @@ from unittest import (
 )
 from zipfile import ZipFile
 
-from build_distributions import (
+sys_path.insert(0, str(Path(__file__).resolve().parents[3] / 'scripts'))
+
+from build import (
 	IMPLEMENTATIONS,
 	PROJECT,
 )

@@ -9,7 +9,7 @@ IMPLEMENTATIONS = {
 	'Gunicorn': 'Adapter.Implements.Gunicorn',
 	'Uvicorn': 'Adapter.Implements.Uvicorn',
 }
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
