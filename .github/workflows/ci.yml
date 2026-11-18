@@ -98,11 +98,11 @@ jobs:
               output.write(f'build={number}\nnew_version={str(new_version).lower()}\n')
               output.write(f'tag={version if new_version else release_tags[latest]}\n')
           PY
-      - name: Collect branch changelog for release
+      - name: Collect release notes from change tag
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
           GH_TOKEN: ${{ github.token }}
-          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
           NEW_VERSION: ${{ steps.changes.outputs.new_version }}
           RELEASE_TAG: ${{ steps.changes.outputs.tag }}
         run: |
@@ -110,8 +110,26 @@ jobs:
           from json import loads
           from os import environ
           from pathlib import Path
-          from re import fullmatch, match
-          from subprocess import check_output
+          from subprocess import (
+              CalledProcessError,
+              check_output,
+          )
+
+
+          def read_change_tag(repository, sha):
+              tag = f'changes/{sha}'
+              try:
+                  ref = loads(check_output(['gh', 'api', f'repos/{repository}/git/ref/tags/{tag}']))
+                  if ref['object']['type'] != 'tag':
+                      raise ValueError(f'Change tag must be annotated: {repository} {tag}')
+                  annotated = loads(check_output(['gh', 'api', f'repos/{repository}/git/tags/{ref["object"]["sha"]}']))
+              except CalledProcessError as error:
+                  raise ValueError(f'Change tag not found: {repository} {tag}') from error
+              message = annotated.get('message')
+              if not isinstance(message, str) or not message.strip():
+                  raise ValueError(f'Change tag message is empty: {repository} {tag}')
+              return message.encode('utf-8')
+
 
           head = environ['GITHUB_SHA']
           repository = environ['GITHUB_REPOSITORY']
@@ -138,38 +156,14 @@ jobs:
               body = release['body'].encode('utf-8')
               print(f'Reusing release notes unchanged: {tag}')
           elif not pulls:
-              before = environ['BEFORE']
-              if not before:
-                  raise ValueError('Missing push base commit')
-              revision = head if set(before) == {'0'} else f'{before}..{head}'
-              commits = check_output(['git', 'log', '--reverse', '--format=- %s (%h)', revision])
-              body = '## master 직접 push\n\n'.encode('utf-8') + commits
-              print('Direct master push: generating release notes from commits')
+              body = read_change_tag(repository, environ['AFTER'])
+              print(f'Direct master push: change tag {repository} changes/{environ["AFTER"]}')
           else:
-              branch = pulls[0]['head']['ref']
-              pr_body = pulls[0].get('body')
-              if pr_body is not None and not isinstance(pr_body, str):
-                  raise ValueError('PR body must be text')
-              lines = [line for line in (pr_body or '').splitlines() if line.strip()]
-              last = lines[-1] if lines else ''
-              marker = r'^(?:[-*]\s*Changes\b|Changes:)'
-              if not last.startswith(('    ', '\t')) and match(marker, last.strip()):
-                  entry_match = fullmatch(
-                      r'- Changes: ((?:issues/(?:bug|fix|feature|task)/[A-Za-z0-9][A-Za-z0-9._-]*|tasks/[0-9]+)/CHANGELOG\.md)',
-                      last.rstrip(),
-                  )
-                  if not entry_match:
-                      raise ValueError(f'Invalid Changes entry: {last.strip()}')
-                  path = entry_match[1]
-              else:
-                  path = f'issues/{branch}/CHANGELOG.md'
-              entry = check_output(['git', 'ls-tree', head, '--', path]).decode().split()
-              if not entry or entry[0] not in ('100644', '100755'):
-                  raise ValueError(f'Changelog must exist as a regular file: {path}')
-              body = check_output(['git', 'show', f'{head}:{path}'])
-              if not body.decode('utf-8').strip():
-                  raise ValueError(f'Customer changelog is empty: {path}')
-              print(f'Customer changelog: {path}')
+              pull_head = pulls[0]['head']
+              if pull_head['repo'] is None:
+                  raise ValueError('PR head repository is unavailable')
+              body = read_change_tag(pull_head['repo']['full_name'], pull_head['sha'])
+              print(f'PR change tag: {pull_head["repo"]["full_name"]} changes/{pull_head["sha"]}')
           notes = Path(environ['RUNNER_TEMP'], 'release-notes', 'README.md')
           notes.parent.mkdir(parents=True, exist_ok=True)
           notes.write_bytes(body)

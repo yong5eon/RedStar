@@ -33,6 +33,17 @@ def main() -> None:
 	environment['SETUPTOOLS_SCM_PRETEND_VERSION'] = get_version(
 		root=str(ROOT),
 		dist_name=PROJECT,
+		git_describe_command=[
+			'git',
+			'describe',
+			'--dirty',
+			'--tags',
+			'--long',
+			'--match',
+			'[0-9]*.[0-9]*',
+			'--match',
+			'v[0-9]*.[0-9]*',
+		],
 		tag_regex=r'^v?(?P<version>[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?(?:(?:rc|\.post)[0-9]+)?)$',
 	)
 	for target in (
