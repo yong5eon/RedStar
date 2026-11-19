@@ -1,7 +1,7 @@
 from io import BytesIO
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	Body,
 	ClientError,
@@ -11,7 +11,7 @@ from DefChord import (
 	RequestRunner,
 	Response,
 )
-from DefChord.IO.Readers import (
+from RedStar.IO.Readers import (
 	ByteStringContentReader,
 	ChunkedStream,
 	ChunkedStreamContentReader,

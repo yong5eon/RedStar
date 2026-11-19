@@ -1,11 +1,11 @@
-from DefChord import (
+from RedStar import (
 	Body,
 	Request,
 	RequestRunner,
 )
-from DefChord.IO.Readers import JavaScriptObjectNotationContentReader
-from DefChord.Responses import ResponseJSON
-from DefChord.Validator.Patterns import (
+from RedStar.IO.Readers import JavaScriptObjectNotationContentReader
+from RedStar.Responses import ResponseJSON
+from RedStar.Validator.Patterns import (
 	IsArray,
 	IsBool,
 	IsInteger,

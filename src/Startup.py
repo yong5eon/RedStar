@@ -10,14 +10,25 @@ __all__ = (
 )
 
 
+LOGO_ROWS = 5
+LOGO_GRADIENT = (
+	'\033[38;5;196m',
+	'\033[38;5;202m',
+	'\033[38;5;208m',
+	'\033[38;5;214m',
+	'\033[38;5;220m',
+	'\033[38;5;226m',
+)
+
+
 # Coder Mini Style
-# https://patorjk.com/software/taag/#p=display&f=Coder+Mini&t=DefChord&x=none&v=4&h=4&w=80&we=false
+# https://patorjk.com/software/taag/#p=display&f=Coder+Mini&t=RedStar&x=none&v=4&h=4&w=80&we=false
 LOGO = r"""
-▄▄▄▄▄▄           ▄▄  ▄▄▄▄▄▄▄ ▄▄                   ▄▄
-███▀▀██▄        ██  ███▀▀▀▀▀ ██                   ██
-███  ███ ▄█▀█▄ ▀██▀ ███      ████▄ ▄███▄ ████▄ ▄████
-███  ███ ██▄█▀  ██  ███      ██ ██ ██ ██ ██ ▀▀ ██ ██
-██████▀  ▀█▄▄▄  ██  ▀███████ ██ ██ ▀███▀ ██    ▀████
+▄▄▄▄▄▄▄            ▄▄  ▄▄▄▄▄▄▄                      ▄
+███▀▀███▄          ██ █████▀▀▀  ██                ▀███▀
+███▄▄███▀ ▄█▀█▄ ▄████  ▀████▄  ▀██▀▀ ▀▀█▄ ████▄    ▀ ▀
+███▀▀██▄  ██▄█▀ ██ ██    ▀████  ██  ▄█▀██ ██ ▀▀
+███  ▀███ ▀█▄▄▄ ▀████ ███████▀  ██  ▀█▄██ ██
 
 Just def. Define your code. Compose your chord. You don't need to await this.
 """
@@ -32,23 +43,30 @@ def supports_color() -> bool:
 
 
 def colorize_logo(logo: str) -> str:
-	"""Apply the existing startup color gradient to the five banner lines."""
-	colors = (
-		'\033[38;5;39m',
-		'\033[38;5;45m',
-		'\033[38;5;51m',
-		'\033[38;5;45m',
-		'\033[38;5;39m',
-	)
+	"""Apply a red-to-yellow gradient from left to right to the five banner lines."""
+	art = [
+		line for line in logo.splitlines()
+		if line.strip()
+	][:LOGO_ROWS]
+	width = max(len(line) for line in art)
 	lines = []
 	art_line = 0
 	for line in logo.splitlines(keepends=True):
-		if line.strip() and art_line < len(colors):
-			newline = '\n' if line.endswith('\n') else ''
-			lines.append(
-				f'{colors[art_line]}{line[:-1] if newline else line}'
-				f'\033[0m{newline}',
-			)
+		if line.strip() and art_line < LOGO_ROWS:
+			newline = line[len(line.rstrip('\r\n')):]
+			text = line[:len(line) - len(newline)]
+			colored = []
+			current = None
+			for column, character in enumerate(text):
+				if character == ' ':
+					colored.append(character)
+					continue
+				color = LOGO_GRADIENT[column * len(LOGO_GRADIENT) // width]
+				if color != current:
+					colored.append(color)
+					current = color
+				colored.append(character)
+			lines.append(''.join(colored) + '\033[0m' + newline)
 			art_line += 1
 		else:
 			lines.append(line)

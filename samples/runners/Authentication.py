@@ -1,4 +1,4 @@
-from DefChord import (
+from RedStar import (
 	Auth,
 	Authorization,
 	Body,
@@ -7,7 +7,7 @@ from DefChord import (
 	Request,
 	RequestRunner,
 )
-from DefChord.Credentials import (
+from RedStar.Credentials import (
 	Cookie,
 	Header,
 	HTTP,
@@ -18,16 +18,16 @@ from DefChord.Credentials import (
 	OAuth2Password,
 	Query,
 )
-from DefChord.IO.Readers import FormUrlEncodedContentReader
-from DefChord.Responses import ResponseJSON
-from DefChord.Validator.Patterns import (
+from RedStar.IO.Readers import FormUrlEncodedContentReader
+from RedStar.Responses import ResponseJSON
+from RedStar.Validator.Patterns import (
 	IsIn,
 	IsObject,
 	IsOptional,
 	IsString,
 	SetDefault,
 )
-from DefChord.Validator.Patterns.Object import (
+from RedStar.Validator.Patterns.Object import (
 	IsMappingOf,
 	IsRequiredIn,
 )

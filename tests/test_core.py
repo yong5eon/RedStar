@@ -3,7 +3,7 @@ from sys import modules
 from types import ModuleType
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ClientError,
 	Error,
@@ -16,11 +16,11 @@ from DefChord import (
 	RequestRunnerRequestResponse,
 	ServerError,
 )
-from DefChord.IO.Readers import (
+from RedStar.IO.Readers import (
 	ChunkedStream,
 	TextContentReader,
 )
-from DefChord.IO.RequestReader import ClientDisconnected
+from RedStar.IO.RequestReader import ClientDisconnected
 
 
 def request(
@@ -238,9 +238,9 @@ class CoreTests(TestCase):
 		return
 
 	def test_module_load_is_independent_and_idempotent(self):
-		module = ModuleType('defchord_test_handlers')
+		module = ModuleType('redstar_test_handlers')
 		exec(
-			'from DefChord import RequestRunner, Response\n'
+			'from RedStar import RequestRunner, Response\n'
 			'class Sample(RequestRunner, method="GET", url="/sample"):\n'
 			'\tdef run(self, request):\n'
 			'\t\treturn Response(body=b"loaded")\n',

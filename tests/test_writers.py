@@ -14,7 +14,7 @@ from threading import Event
 from unittest import TestCase
 from unittest.mock import patch
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationRequest,
 	ApplicationRequestError,
@@ -27,12 +27,12 @@ from DefChord import (
 	Response,
 	ResponseWriter,
 )
-from DefChord.IO.Readers import (
+from RedStar.IO.Readers import (
 	ChunkedStreamContentReader,
 	StreamContentReader,
 )
-from DefChord.IO.RequestReader import ClientDisconnected
-from DefChord.IO.Writers import (
+from RedStar.IO.RequestReader import ClientDisconnected
+from RedStar.IO.Writers import (
 	ChunkedStreamWriter,
 	ServerSentEvents,
 	ServerSentEventsWriter,

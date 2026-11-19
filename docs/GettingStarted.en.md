@@ -4,21 +4,21 @@
 
 [한국어](./GettingStarted.md)
 
-DefChord is a synchronous Python web framework. An HTTP server passes each request to an `Application`, where a registered `RequestRunner` validates input, runs application logic, and returns a `Response`.
+RedStar is a synchronous Python web framework. An HTTP server passes each request to an `Application`, where a registered `RequestRunner` validates input, runs application logic, and returns a `Response`.
 
 ## Install
 
 Requires Python 3.9 or later. The default installation includes a server based on the Python standard library. Gunicorn and Uvicorn adapters are optional.
 
 ```shell
-python -m pip install DefChord
+python -m pip install RedStar
 ```
 
 Install an extra only when selecting its server adapter:
 
 ```shell
-python -m pip install "DefChord[Gunicorn]"
-python -m pip install "DefChord[Uvicorn]"
+python -m pip install "RedStar[Gunicorn]"
+python -m pip install "RedStar[Uvicorn]"
 ```
 
 Adapter sources are always installed; extras only install external dependencies. To modify the source code, see [installation layout, development and distribution](./Packaging.en.md).
@@ -28,9 +28,9 @@ Adapter sources are always installed; extras only install external dependencies.
 Save this as `app.py`:
 
 ```python
-from DefChord import Application, Request, RequestRunner
-from DefChord.Adapter.Implements.Python import Server
-from DefChord.Responses import ResponseText
+from RedStar import Application, Request, RequestRunner
+from RedStar.Adapter.Implements.Python import Server
+from RedStar.Responses import ResponseText
 
 
 class Hello(RequestRunner, method='GET', url='/hello'):
@@ -86,8 +86,8 @@ Continue with [Routes, Requests, and Responses](./RoutingAndRequests.en.md) for 
 A handler class declares one HTTP method and path combination. A new handler instance is created for each request, so do not retain request-specific state in handler instance fields.
 
 ```python
-from DefChord import Application, Request, RequestRunner
-from DefChord.Responses import ResponseJSON
+from RedStar import Application, Request, RequestRunner
+from RedStar.Responses import ResponseJSON
 
 
 class Health(RequestRunner, method='GET', url='/health'):

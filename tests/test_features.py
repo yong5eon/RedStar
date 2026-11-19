@@ -1,7 +1,7 @@
 from io import BytesIO
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	Auth,
 	Authorization,
@@ -19,7 +19,7 @@ from DefChord import (
 	Response,
 	ResponseWriter,
 )
-from DefChord.Credentials import (
+from RedStar.Credentials import (
 	Cookie,
 	Header,
 	HTTP,
@@ -29,15 +29,15 @@ from DefChord.Credentials import (
 	OAuth2Password,
 	Query,
 )
-from DefChord.IO.Readers import (
+from RedStar.IO.Readers import (
 	ByteStringContentReader,
 	FormUrlEncodedContentReader,
 	JavaScriptObjectNotationContentReader,
 	TextContentReader,
 	TypeReader,
 )
-from DefChord.IO.Writers import StreamWriter
-from DefChord.Validator.Patterns import (
+from RedStar.IO.Writers import StreamWriter
+from RedStar.Validator.Patterns import (
 	IsString,
 	SetDefault,
 	ToInteger,

@@ -13,7 +13,7 @@ from unittest.mock import (
 	patch,
 )
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationRequest,
 	ApplicationRequestResponse,
@@ -27,7 +27,7 @@ from DefChord import (
 	Response,
 	ResponseWriter,
 )
-from DefChord.Extensions import (
+from RedStar.Extensions import (
 	File,
 	FileSystem,
 	MetricsCollector,
@@ -37,8 +37,8 @@ from DefChord.Extensions import (
 	Status,
 	Swagger,
 )
-from DefChord.Extensions.FileSystem import FileSystemRoute
-from DefChord.Utils.FileSystemObject.Implements.FileSystem import (
+from RedStar.Extensions.FileSystem import FileSystemRoute
+from RedStar.Utils.FileSystemObject.Implements.FileSystem import (
 	Configuration,
 	Connection,
 )

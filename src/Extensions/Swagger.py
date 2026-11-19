@@ -37,7 +37,7 @@ class Swagger(Extension):
 		path: str,
 		*,
 		spec_uri: str,
-		title: str = 'DefChord',
+		title: str = 'RedStar',
 		description: str = '',
 		on_startup: Optional[Union[
 			ExtensionStartup,

@@ -11,24 +11,24 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from DefChord import (
+from RedStar import (
 	Application,
 	RequestRunner,
 	Response,
 )
-from DefChord.Adapter.Implements.Python import Server
-from DefChord.Startup import (
+from RedStar.Adapter.Implements.Python import Server
+from RedStar.Startup import (
 	LOGO,
 	colorize_logo,
 	startup,
 	supports_color,
 )
-from DefChord.Extensions import (
+from RedStar.Extensions import (
 	File,
 	FileSystem,
 	Ping,
 )
-from DefChord.Utils.FileSystemObject.Implements.FileSystem import (
+from RedStar.Utils.FileSystemObject.Implements.FileSystem import (
 	Configuration,
 	Connection,
 )
@@ -262,10 +262,18 @@ class StartupTests(TestCase):
 		self.assertEqual(colored_logo.count('\033[0m'), 5)
 		logo_rows = LOGO.splitlines()[1:6]
 		self.assertEqual(len(logo_rows), 5)
-		self.assertEqual({len(row.rstrip()) for row in logo_rows}, {52})
 		self.assertTrue(all(len(row) == len(row.rstrip()) for row in logo_rows))
 		self.assertIn('▄', ''.join(logo_rows))
 		self.assertIn('▀', ''.join(logo_rows))
+		self.assertIn('▀███▀', logo_rows[1])
+		colored_rows = colored_logo.splitlines()[1:6]
+		for row in colored_rows:
+			self.assertTrue(row.startswith('\033[38;5;196m'))
+		self.assertIn('\033[38;5;226m', colored_rows[1])
+		self.assertLess(
+			colored_rows[0].index('\033[38;5;196m'),
+			colored_rows[0].index('\033[38;5;214m'),
+		)
 		self.assertIn(
 			'Just def. Define your code. Compose your chord. '
 			"You don't need to await this.",

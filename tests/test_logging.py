@@ -28,7 +28,7 @@ from unittest.mock import (
 	patch,
 )
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationRequest,
 	Extension,
@@ -40,14 +40,14 @@ from DefChord import (
 	Response,
 	ResponseWriter,
 )
-from DefChord.Adapter.Implements.Gunicorn import Server as GunicornServer
-from DefChord.Adapter.Implements.Python.Server import (
+from RedStar.Adapter.Implements.Gunicorn import Server as GunicornServer
+from RedStar.Adapter.Implements.Python.Server import (
 	Server,
 	ServerRequestHandler,
 )
-from DefChord.Adapter.Implements.Uvicorn import Server as UvicornServer
-from DefChord.Adapter.RequestHandler import handle_request
-from DefChord.Extensions import (
+from RedStar.Adapter.Implements.Uvicorn import Server as UvicornServer
+from RedStar.Adapter.RequestHandler import handle_request
+from RedStar.Extensions import (
 	File,
 	FileSystem,
 	Metrics,
@@ -56,11 +56,11 @@ from DefChord.Extensions import (
 	Status,
 	Swagger,
 )
-from DefChord.Runners.RunRequest import RunRequest
-from DefChord.IO.RequestReader import ClientDisconnected
-from DefChord.IO.WebSocket import WebSocket
-from DefChord.IO.WebSocket.WebSocketError import WebSocketError
-from DefChord.IO.WebSocket.WebSocketFrame import WebSocketFrame
+from RedStar.Runners.RunRequest import RunRequest
+from RedStar.IO.RequestReader import ClientDisconnected
+from RedStar.IO.WebSocket import WebSocket
+from RedStar.IO.WebSocket.WebSocketError import WebSocketError
+from RedStar.IO.WebSocket.WebSocketFrame import WebSocketFrame
 from test_server import running
 
 
@@ -484,7 +484,7 @@ class LoggingTests(TestCase):
 		return
 
 	def test_monotonic_duration_and_unavailable_status(self):
-		module = import_module('DefChord.Adapter.RequestHandler')
+		module = import_module('RedStar.Adapter.RequestHandler')
 		with patch.object(module, 'monotonic', side_effect=(10.0, 12.5)):
 			with self.assertLogs('Server', level=INFO) as logs:
 				value = request()
@@ -759,9 +759,9 @@ class LoggingTests(TestCase):
 		code = (
 			'from importlib.util import module_from_spec, spec_from_file_location\n'
 			'import logging, sys\n'
-			'spec = spec_from_file_location("DefChord", sys.argv[1])\n'
+			'spec = spec_from_file_location("RedStar", sys.argv[1])\n'
 			'module = module_from_spec(spec)\n'
-			'sys.modules["DefChord"] = module\n'
+			'sys.modules["RedStar"] = module\n'
 			'spec.loader.exec_module(module)\n'
 			'app = module.Application()\n'
 			'app.start()\n'

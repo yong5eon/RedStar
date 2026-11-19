@@ -287,40 +287,40 @@ class MetricsCollector:
 	) -> str:
 		snapshot = self.snapshot()
 		lines = [
-			'# HELP defchord_application_running Application lifecycle is running; not an external heartbeat.',
-			'# TYPE defchord_application_running gauge',
-			f'defchord_application_running {int(snapshot["running"])}',
-			'# HELP defchord_application_uptime_seconds Seconds since application startup.',
-			'# TYPE defchord_application_uptime_seconds gauge',
-			f'defchord_application_uptime_seconds {snapshot["uptime"]}',
-			'# HELP defchord_requests_active Requests being processed by the Application.',
-			'# TYPE defchord_requests_active gauge',
-			'# HELP defchord_requests_total Completed Application requests by outcome.',
-			'# TYPE defchord_requests_total counter',
-			'# HELP defchord_request_duration_seconds Application processing duration; excludes response transfer.',
-			'# TYPE defchord_request_duration_seconds summary',
-			'# TYPE defchord_request_oldest_active_seconds gauge',
-			'# TYPE defchord_requests_window gauge',
-			'# TYPE defchord_request_window_duration_seconds_sum gauge',
-			'# TYPE defchord_request_window_duration_seconds_max gauge',
+			'# HELP redstar_application_running Application lifecycle is running; not an external heartbeat.',
+			'# TYPE redstar_application_running gauge',
+			f'redstar_application_running {int(snapshot["running"])}',
+			'# HELP redstar_application_uptime_seconds Seconds since application startup.',
+			'# TYPE redstar_application_uptime_seconds gauge',
+			f'redstar_application_uptime_seconds {snapshot["uptime"]}',
+			'# HELP redstar_requests_active Requests being processed by the Application.',
+			'# TYPE redstar_requests_active gauge',
+			'# HELP redstar_requests_total Completed Application requests by outcome.',
+			'# TYPE redstar_requests_total counter',
+			'# HELP redstar_request_duration_seconds Application processing duration; excludes response transfer.',
+			'# TYPE redstar_request_duration_seconds summary',
+			'# TYPE redstar_request_oldest_active_seconds gauge',
+			'# TYPE redstar_requests_window gauge',
+			'# TYPE redstar_request_window_duration_seconds_sum gauge',
+			'# TYPE redstar_request_window_duration_seconds_max gauge',
 		]
 		for key, stats in snapshot['requests'].items():
 			tags = 'route="' + label(key) + '"'
 			lines.extend((
-				f'defchord_requests_active{{{tags}}} {stats["active"]}',
-				f'defchord_requests_total{{{tags},outcome="success"}} {stats["success"]}',
-				f'defchord_requests_total{{{tags},outcome="failure"}} {stats["failure"]}',
-				f'defchord_request_duration_seconds_count{{{tags}}} {stats["success"] + stats["failure"]}',
-				f'defchord_request_duration_seconds_sum{{{tags}}} {stats["duration"]}',
-				f'defchord_request_oldest_active_seconds{{{tags}}} {stats["oldest_active"]}',
+				f'redstar_requests_active{{{tags}}} {stats["active"]}',
+				f'redstar_requests_total{{{tags},outcome="success"}} {stats["success"]}',
+				f'redstar_requests_total{{{tags},outcome="failure"}} {stats["failure"]}',
+				f'redstar_request_duration_seconds_count{{{tags}}} {stats["success"] + stats["failure"]}',
+				f'redstar_request_duration_seconds_sum{{{tags}}} {stats["duration"]}',
+				f'redstar_request_oldest_active_seconds{{{tags}}} {stats["oldest_active"]}',
 			))
 			for seconds, window in stats['windows'].items():
 				window_tags = tags + ',window_seconds="' + seconds + '"'
 				lines.extend((
-					f'defchord_requests_window{{{window_tags},outcome="success"}} {window["success"]}',
-					f'defchord_requests_window{{{window_tags},outcome="failure"}} {window["failure"]}',
-					f'defchord_request_window_duration_seconds_sum{{{window_tags}}} {window["duration"]}',
-					f'defchord_request_window_duration_seconds_max{{{window_tags}}} {window["max_duration"]}',
+					f'redstar_requests_window{{{window_tags},outcome="success"}} {window["success"]}',
+					f'redstar_requests_window{{{window_tags},outcome="failure"}} {window["failure"]}',
+					f'redstar_request_window_duration_seconds_sum{{{window_tags}}} {window["duration"]}',
+					f'redstar_request_window_duration_seconds_max{{{window_tags}}} {window["max_duration"]}',
 				))
 		return '\n'.join(lines) + '\n'
 

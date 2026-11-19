@@ -4,7 +4,7 @@ from threading import Event
 from typing import Sequence
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationCleanup,
 	ApplicationRequest,
@@ -24,7 +24,7 @@ from DefChord import (
 	ResponseWriter,
 	Route,
 )
-from DefChord.Runners.RunExtension import RunExtensionFactory
+from RedStar.Runners.RunExtension import RunExtensionFactory
 
 from test_features import request
 

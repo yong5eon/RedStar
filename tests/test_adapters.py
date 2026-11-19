@@ -34,7 +34,7 @@ from unittest import (
 from unittest.mock import patch
 from wsgiref.util import setup_testing_defaults
 
-from DefChord import (
+from RedStar import (
 	Application,
 	Body,
 	Extension,
@@ -43,12 +43,12 @@ from DefChord import (
 	RequestRunner,
 	Response,
 )
-from DefChord.Adapter import Server as ServerAdapter
-from DefChord.Adapter.Implements.Gunicorn import Server as GunicornServer
-from DefChord.Adapter.Implements.Python import Server as PythonServer
-from DefChord.Adapter.Implements.Uvicorn import Server as UvicornServer
-from DefChord.Adapter.WSGI import WSGIApplication
-from DefChord.IO.Readers import (
+from RedStar.Adapter import Server as ServerAdapter
+from RedStar.Adapter.Implements.Gunicorn import Server as GunicornServer
+from RedStar.Adapter.Implements.Python import Server as PythonServer
+from RedStar.Adapter.Implements.Uvicorn import Server as UvicornServer
+from RedStar.Adapter.WSGI import WSGIApplication
+from RedStar.IO.Readers import (
 	ChunkedStreamContentReader,
 	StreamContentReader,
 )
@@ -440,7 +440,7 @@ class WSGITests(TestCase):
 @skipUnless(find_spec('uvicorn') and find_spec('a2wsgi'), 'Uvicorn 선택적 의존성 필요')
 class UvicornTests(TestCase):
 	def test_websocket_protocol_uses_uvicorn_logger_namespace(self):
-		from DefChord.Adapter.Implements.Uvicorn.WebSocket import WebSocketProtocol
+		from RedStar.Adapter.Implements.Uvicorn.WebSocket import WebSocketProtocol
 
 		self.assertEqual(WebSocketProtocol.logger.name, 'Server.Uvicorn')
 		return
@@ -634,7 +634,7 @@ class UvicornTests(TestCase):
 		lifecycle = Lifecycle()
 		application = Application(exts=(lifecycle,))
 		with patch.object(
-			import_module('DefChord.Adapter.Implements.Uvicorn.Server'),
+			import_module('RedStar.Adapter.Implements.Uvicorn.Server'),
 			'startup',
 			side_effect=OSError('output failed'),
 		):
@@ -685,7 +685,7 @@ class GunicornTests(TestCase):
 		self,
 		cases,
 	):
-		from DefChord import __file__ as package_file
+		from RedStar import __file__ as package_file
 
 		script = '''
 from importlib.util import module_from_spec, spec_from_file_location
@@ -694,12 +694,12 @@ from os import getpid
 import sys
 
 source, port, events, worker_class, style = sys.argv[1:]
-spec = spec_from_file_location('DefChord', Path(source) / '__init__.py')
+spec = spec_from_file_location('RedStar', Path(source) / '__init__.py')
 module = module_from_spec(spec)
-sys.modules['DefChord'] = module
+sys.modules['RedStar'] = module
 spec.loader.exec_module(module)
 
-from DefChord import (
+from RedStar import (
 	Application,
 	Body,
 	Extension,
@@ -708,8 +708,8 @@ from DefChord import (
 	RequestRunner,
 	Response,
 )
-from DefChord.Adapter.Implements.Gunicorn import Server
-from DefChord.IO.Readers import ChunkedStreamContentReader
+from RedStar.Adapter.Implements.Gunicorn import Server
+from RedStar.IO.Readers import ChunkedStreamContentReader
 
 def record(event):
 	with Path(events).open('a') as output:

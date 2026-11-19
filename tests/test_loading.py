@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	Request,
 )
@@ -17,7 +17,7 @@ class LoadingTests(TestCase):
 				encoding='utf-8',
 			)
 			(path / 'handlers.py').write_text(
-				'from DefChord import RequestRunner, Response\n'
+				'from RedStar import RequestRunner, Response\n'
 				'class Sample(RequestRunner, method="GET", url="/sample"):\n'
 				'\tdef run(self, request):\n'
 				'\t\treturn Response(body=b"loaded")\n',

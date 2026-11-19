@@ -13,7 +13,7 @@ from time import (
 from unittest import TestCase
 from unittest.mock import patch
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationStartup,
 	Body,
@@ -23,8 +23,8 @@ from DefChord import (
 	RequestRunner,
 	Response,
 )
-from DefChord.Adapter.Implements.Python import Server
-from DefChord.IO.Readers import (
+from RedStar.Adapter.Implements.Python import Server
+from RedStar.IO.Readers import (
 	ChunkedStreamContentReader,
 	StreamContentReader,
 )
