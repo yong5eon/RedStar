@@ -104,7 +104,7 @@ class Server(
 class ServerRequestHandler(BaseHTTPRequestHandler):
 	server: Server
 	protocol_version = 'HTTP/1.1'
-	server_version = 'DefChord'
+	server_version = 'RedStar'
 	logger = getLogger('Server.Python')
 
 	def request_reader(self) -> RequestReader:

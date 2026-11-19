@@ -22,20 +22,20 @@ class RejectExternal(MetaPathFinder):
 
 sys.meta_path.insert(0, RejectExternal())
 source = Path(sys.argv[1])
-spec = spec_from_file_location('DefChord', source / '__init__.py')
+spec = spec_from_file_location('RedStar', source / '__init__.py')
 module = module_from_spec(spec)
-sys.modules['DefChord'] = module
+sys.modules['RedStar'] = module
 spec.loader.exec_module(module)
-from DefChord import Application, Request, RequestRunner, Response
-from DefChord.Adapter.Implements.Python import Server as PythonServer
-from DefChord.Adapter.Implements.Gunicorn import Server as GunicornServer
-from DefChord.Adapter.Implements.Uvicorn import Server as UvicornServer
-from DefChord.IO.Readers import StreamContentReader
-from DefChord.IO.Writers import ChunkedStreamWriter, ServerSentEventsWriter
-from DefChord.Credentials import OAuth2AuthorizationCode
-from DefChord.Responses import ResponseFile, ResponseJSON, ResponseText
-from DefChord.Utils.FileSystemObject.Implements.FileSystem import Configuration, Connection
-from DefChord.Extensions import (
+from RedStar import Application, Request, RequestRunner, Response
+from RedStar.Adapter.Implements.Python import Server as PythonServer
+from RedStar.Adapter.Implements.Gunicorn import Server as GunicornServer
+from RedStar.Adapter.Implements.Uvicorn import Server as UvicornServer
+from RedStar.IO.Readers import StreamContentReader
+from RedStar.IO.Writers import ChunkedStreamWriter, ServerSentEventsWriter
+from RedStar.Credentials import OAuth2AuthorizationCode
+from RedStar.Responses import ResponseFile, ResponseJSON, ResponseText
+from RedStar.Utils.FileSystemObject.Implements.FileSystem import Configuration, Connection
+from RedStar.Extensions import (
 	Metrics,
 	Status,
 	Specifications,

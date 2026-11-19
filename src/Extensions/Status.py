@@ -37,7 +37,7 @@ class Status(Extension):
 		path: str,
 		*,
 		metrics_uri: str,
-		title: str = 'DefChord',
+		title: str = 'RedStar',
 		description: str = '',
 		on_startup: Optional[Union[
 			ExtensionStartup,

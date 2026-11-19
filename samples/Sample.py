@@ -14,7 +14,7 @@ from pathlib import Path
 from sys import path
 from typing import Optional
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationCleanup,
 	ApplicationRequest,
@@ -26,8 +26,8 @@ from DefChord import (
 	Request,
 	Response,
 )
-from DefChord.Adapter.Implements.Python import Server
-from DefChord.Extensions import (
+from RedStar.Adapter.Implements.Python import Server
+from RedStar.Extensions import (
 	File,
 	FileSystem,
 	Status,
@@ -36,8 +36,8 @@ from DefChord.Extensions import (
 	Specifications,
 	Swagger,
 )
-from DefChord.Responses import ResponseFile
-from DefChord.Utils.FileSystemObject.Implements.FileSystem import (
+from RedStar.Responses import ResponseFile
+from RedStar.Utils.FileSystemObject.Implements.FileSystem import (
 	Configuration,
 	Connection,
 )
@@ -233,7 +233,7 @@ def create_application() -> Application:
 			),
 			Specifications(
 				'/api/doc',
-				title='DefChord HTTP Sample',
+				title='RedStar HTTP Sample',
 			),
 			Swagger(
 				'/swagger',

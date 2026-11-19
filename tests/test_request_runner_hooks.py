@@ -5,7 +5,7 @@ from threading import Barrier
 from typing import Optional, get_type_hints
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationRequest,
 	ApplicationRequestError,
@@ -29,18 +29,18 @@ from DefChord import (
 	Response,
 	ResponseWriter,
 )
-from DefChord.Adapter.RequestHandler import handle_request
-from DefChord.IO.Readers import (
+from RedStar.Adapter.RequestHandler import handle_request
+from RedStar.IO.Readers import (
 	ChunkedStreamContentReader,
 	StreamContentReader,
 )
-from DefChord.IO.Writers import (
+from RedStar.IO.Writers import (
 	ChunkedStreamWriter,
 	ServerSentEventsWriter,
 	StreamWriter,
 )
-from DefChord.Runners.RunExtension import run_extension
-from DefChord.Runners.RunRequest import RunRequest
+from RedStar.Runners.RunExtension import run_extension
+from RedStar.Runners.RunRequest import RunRequest
 
 
 class RequestHook(RequestRunnerRequest):
@@ -143,8 +143,8 @@ def handler(
 class RequestRunnerHookTests(TestCase):
 	def test_exports_and_removed_api(self):
 		for module in (
-			import_module('DefChord'),
-			import_module('DefChord.RequestRunner'),
+			import_module('RedStar'),
+			import_module('RedStar.RequestRunner'),
 		):
 			for contract in (
 				RequestRunnerRequest,

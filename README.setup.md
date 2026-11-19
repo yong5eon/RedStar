@@ -1,20 +1,20 @@
-# DefChord
+# RedStar
 
 The Modern Synchronous Python Web Application Framework
 
-DefChord is a synchronous Python web framework for handling HTTP requests with ordinary methods. Python 3.9 or later is required.
+RedStar is a synchronous Python web framework for handling HTTP requests with ordinary methods. Python 3.9 or later is required.
 
 ## Installation
 
 ```shell
-python -m pip install DefChord
+python -m pip install RedStar
 ```
 
 The built-in Python HTTP server requires no additional server dependency. The Gunicorn and Uvicorn adapter sources are always included; the following extras install only the external dependencies each adapter needs:
 
 ```shell
-python -m pip install "DefChord[Gunicorn]"
-python -m pip install "DefChord[Uvicorn]"
+python -m pip install "RedStar[Gunicorn]"
+python -m pip install "RedStar[Uvicorn]"
 ```
 
 Install the desired adapter extra when needed.
@@ -24,9 +24,9 @@ Install the desired adapter extra when needed.
 Save this example as `app.py` and run `python app.py`.
 
 ```python
-from DefChord import Application, Request, RequestRunner
-from DefChord.Adapter.Implements.Python import Server
-from DefChord.Responses import ResponseText
+from RedStar import Application, Request, RequestRunner
+from RedStar.Adapter.Implements.Python import Server
+from RedStar.Responses import ResponseText
 
 
 class Hello(RequestRunner, method='GET', url='/hello'):

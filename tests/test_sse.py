@@ -2,12 +2,12 @@ from http.client import HTTPConnection
 from threading import Event
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	RequestRunner,
 	Response,
 )
-from DefChord.IO.Writers import ServerSentEvents
+from RedStar.IO.Writers import ServerSentEvents
 from test_server import running
 
 

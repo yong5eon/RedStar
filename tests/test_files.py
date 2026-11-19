@@ -5,7 +5,7 @@ from unittest import TestCase
 from unittest.mock import patch
 from http.client import HTTPConnection
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ClientError,
 	ExtensionRequest,
@@ -13,13 +13,13 @@ from DefChord import (
 	Response,
 	ResponseWriter,
 )
-from DefChord.Responses import ResponseFile
-from DefChord.Responses.ResponseFile import FileBody
-from DefChord.Extensions import (
+from RedStar.Responses import ResponseFile
+from RedStar.Responses.ResponseFile import FileBody
+from RedStar.Extensions import (
 	File,
 	FileSystem,
 )
-from DefChord.Utils.FileSystemObject.Implements.FileSystem import (
+from RedStar.Utils.FileSystemObject.Implements.FileSystem import (
 	Configuration,
 	Connection,
 )

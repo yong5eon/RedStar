@@ -2,7 +2,7 @@ from logging import getLogger
 from random import randrange
 from time import sleep
 
-from DefChord import (
+from RedStar import (
 	Body,
 	Request,
 	RequestRunner,
@@ -11,12 +11,12 @@ from DefChord import (
 	RequestRunnerRequestResponse,
 	Response,
 )
-from DefChord.IO.Readers import (
+from RedStar.IO.Readers import (
 	ChunkedStreamContentReader,
 	StreamContentReader,
 )
-from DefChord.IO.WebSocket import WebSocket
-from DefChord.IO.Writers import (
+from RedStar.IO.WebSocket import WebSocket
+from RedStar.IO.Writers import (
 	ChunkedStreamWriter,
 	ServerSentEventsWriter,
 	StreamWriter,

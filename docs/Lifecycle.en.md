@@ -4,7 +4,7 @@
 
 [한국어](./Lifecycle.md)
 
-DefChord provides hooks for application and extension startup/cleanup, request preprocessing, and response postprocessing. Hooks are explicit contracts that run user code at defined points. Register one hook or an ordered sequence of hooks.
+RedStar provides hooks for application and extension startup/cleanup, request preprocessing, and response postprocessing. Hooks are explicit contracts that run user code at defined points. Register one hook or an ordered sequence of hooks.
 
 ## Application and extension lifecycle
 
@@ -20,7 +20,7 @@ DefChord provides hooks for application and extension startup/cleanup, request p
 ```python
 from logging import getLogger
 
-from DefChord import (
+from RedStar import (
   Application,
   ApplicationCleanup,
   ApplicationStartup,
@@ -97,13 +97,13 @@ The normal response path has these main steps:
 ```python
 from logging import getLogger
 
-from DefChord import (
+from RedStar import (
   Request,
   RequestRunner,
   RequestRunnerRequest,
   RequestRunnerRequestResponse,
 )
-from DefChord.Responses import ResponseText
+from RedStar.Responses import ResponseText
 
 
 class RequestLog(RequestRunnerRequest):

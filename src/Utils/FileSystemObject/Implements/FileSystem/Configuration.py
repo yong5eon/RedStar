@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from DefChord.Utils.FileSystemObject import Configuration as BaseConfiguration
+from RedStar.Utils.FileSystemObject import Configuration as BaseConfiguration
 
 __all__ = (
 	'Configuration',

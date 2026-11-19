@@ -2,7 +2,7 @@ from io import BytesIO
 from typing import Any
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationCleanup,
 	ApplicationRequest,
@@ -20,8 +20,8 @@ from DefChord import (
 	Response,
 	RequestRunnerRequestResponse,
 )
-from DefChord.IO.ResponseWriter import ResponseWriter
-from DefChord.Adapter.RequestHandler import handle_request
+from RedStar.IO.ResponseWriter import ResponseWriter
+from RedStar.Adapter.RequestHandler import handle_request
 
 
 class Lifecycle(Extension):

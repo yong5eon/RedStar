@@ -9,7 +9,7 @@ from urllib.error import HTTPError
 from urllib.request import urlopen
 from zipfile import ZipFile
 
-PROJECT = 'DefChord'
+PROJECT = 'RedStar'
 
 
 def main() -> None:

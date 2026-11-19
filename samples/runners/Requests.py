@@ -1,7 +1,7 @@
 from logging import getLogger
 from typing import Optional
 
-from DefChord import (
+from RedStar import (
 	Body,
 	ClientError,
 	Content,
@@ -16,16 +16,16 @@ from DefChord import (
 	Response,
 	ResponseSpecification,
 )
-from DefChord.Descriptor import (
+from RedStar.Descriptor import (
 	Binary,
 	Schema,
 )
-from DefChord.IO.Readers import (
+from RedStar.IO.Readers import (
 	ByteStringContentReader,
 	JavaScriptObjectNotationContentReader,
 )
-from DefChord.Responses import ResponseJSON
-from DefChord.Validator.Patterns import (
+from RedStar.Responses import ResponseJSON
+from RedStar.Validator.Patterns import (
 	IsGreaterThan,
 	IsLessThan,
 	IsObject,
@@ -35,7 +35,7 @@ from DefChord.Validator.Patterns import (
 	ToFloat,
 	ToInteger,
 )
-from DefChord.Validator.Patterns.Object import (
+from RedStar.Validator.Patterns.Object import (
 	IsMappingOf,
 	IsRequiredIn,
 )

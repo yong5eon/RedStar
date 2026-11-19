@@ -7,7 +7,7 @@ from setuptools import (
 	setup,
 )
 
-PACKAGE = 'DefChord'
+PACKAGE = 'RedStar'
 SOURCE = 'src'
 DEPENDENCIES = {
 	'Gunicorn': ['gunicorn>=23'],
@@ -58,17 +58,17 @@ setup(
 	long_description=Path('README.setup.md').read_text(encoding='utf-8'),
 	long_description_content_type='text/markdown',
 	author='Heo Yongseon',
-	url='https://github.com/yong5eon/DefChord',
+	url='https://github.com/yong5eon/RedStar',
 	project_urls={
-		'Source': 'https://github.com/yong5eon/DefChord',
-		'Issues': 'https://github.com/yong5eon/DefChord/issues',
-		'Releases': 'https://github.com/yong5eon/DefChord/releases',
+		'Source': 'https://github.com/yong5eon/RedStar',
+		'Issues': 'https://github.com/yong5eon/RedStar/issues',
+		'Releases': 'https://github.com/yong5eon/RedStar/releases',
 	},
 	packages=PACKAGES,
 	package_dir=PACKAGE_DIR,
 	include_package_data=False,
 	package_data={
-		'DefChord.Extensions': [
+		'RedStar.Extensions': [
 			'Status.html',
 			'Swagger.html',
 		],

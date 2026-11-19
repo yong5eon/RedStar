@@ -33,7 +33,7 @@ from unittest import (
 	skipUnless,
 )
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationCleanup,
 	ApplicationRequestError,
@@ -43,12 +43,12 @@ from DefChord import (
 	RequestRunner,
 	Response,
 )
-from DefChord.IO.Readers import (
+from RedStar.IO.Readers import (
 	ChunkedStreamContentReader,
 	StreamContentReader,
 )
-from DefChord.IO.WebSocket import WebSocket
-from DefChord.IO.Writers import (
+from RedStar.IO.WebSocket import WebSocket
+from RedStar.IO.Writers import (
 	ChunkedStreamWriter,
 	ServerSentEventsWriter,
 	StreamWriter,
@@ -248,7 +248,7 @@ def run_server(
 	):
 		application.add(handler)
 	if adapter == 'Python':
-		from DefChord.Adapter.Implements.Python import Server
+		from RedStar.Adapter.Implements.Python import Server
 
 		Server(
 			'127.0.0.1',
@@ -256,7 +256,7 @@ def run_server(
 			application,
 		).run()
 	elif adapter == 'Uvicorn':
-		from DefChord.Adapter.Implements.Uvicorn import Server
+		from RedStar.Adapter.Implements.Uvicorn import Server
 
 		Server(
 			'127.0.0.1',
@@ -265,7 +265,7 @@ def run_server(
 			log_level='warning',
 		).run()
 	else:
-		from DefChord.Adapter.Implements.Gunicorn import Server
+		from RedStar.Adapter.Implements.Gunicorn import Server
 
 		Server(
 			'127.0.0.1',
@@ -286,16 +286,16 @@ class TransportConformanceTests(TestCase):
 		adapter,
 		worker,
 	):
-		from DefChord import __file__ as package_file
+		from RedStar import __file__ as package_file
 
 		script = '''
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 import sys
 source, tests, adapter, port, directory, worker = sys.argv[1:]
-spec = spec_from_file_location('DefChord', Path(source) / '__init__.py')
+spec = spec_from_file_location('RedStar', Path(source) / '__init__.py')
 module = module_from_spec(spec)
-sys.modules['DefChord'] = module
+sys.modules['RedStar'] = module
 spec.loader.exec_module(module)
 sys.path.insert(0, tests)
 from test_transport_conformance import run_server

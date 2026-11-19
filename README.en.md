@@ -1,14 +1,13 @@
-﻿# DefChord
+﻿# RedStar
 
 The Modern Synchronous Python Web Application Framework
 
-**Just def.**<br>
-**Define your code. Compose your chord.**<br>
-**You don't need to await this.**
+**Fast without the fuss.**<br>
+**Elegant without the async.**
 
 [한국어](./README.md)
 
-DefChord is a synchronous web framework for handling HTTP requests with ordinary Python methods. Configure routes, request validation, responses, and extensions without `async` / `await`.
+RedStar is a synchronous web framework for handling HTTP requests with ordinary Python methods. Configure routes, request validation, responses, and extensions without `async` / `await`.
 
 - Validation for path, query, header, and body inputs
 - JSON, text, and file responses; streaming, Server-Sent Events, and WebSocket
@@ -20,15 +19,15 @@ DefChord is a synchronous web framework for handling HTTP requests with ordinary
 Requires Python 3.9 or later. The built-in server is available without extra server dependencies.
 
 ```shell
-python -m pip install DefChord
+python -m pip install RedStar
 ```
 
 Install an extra when using the corresponding Gunicorn or Uvicorn adapter.
 Both adapters' code is always included in the distribution; each extra only installs that adapter's external dependencies.
 
 ```shell
-python -m pip install "DefChord[Gunicorn]"
-python -m pip install "DefChord[Uvicorn]"
+python -m pip install "RedStar[Gunicorn]"
+python -m pip install "RedStar[Uvicorn]"
 ```
 
 To modify the source code, see [installation layout, development and distribution](./docs/Packaging.en.md).
@@ -36,9 +35,9 @@ To modify the source code, see [installation layout, development and distributio
 ## Quick start
 
 ```python
-from DefChord import Application, Request, RequestRunner
-from DefChord.Adapter.Implements.Python import Server
-from DefChord.Responses import ResponseText
+from RedStar import Application, Request, RequestRunner
+from RedStar.Adapter.Implements.Python import Server
+from RedStar.Responses import ResponseText
 
 
 class Hello(RequestRunner, method='GET', url='/hello'):
@@ -56,6 +55,6 @@ After starting the server, send a `GET /hello` request to receive `Hello, world!
 ## Documentation and releases
 
 - [Detailed guide (English)](./docs/README.en.md)
-- [Releases and change history](https://github.com/yong5eon/DefChord/releases)
+- [Releases and change history](https://github.com/yong5eon/RedStar/releases)
 
 See the repository's `LICENSE` file for license terms.

@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from venv import EnvBuilder
 from zipfile import ZipFile
 
-PROJECT = 'DefChord'
+PROJECT = 'RedStar'
 MODULES = (
 	'Adapter.Implements.Python',
 	'Adapter.Implements.Gunicorn',

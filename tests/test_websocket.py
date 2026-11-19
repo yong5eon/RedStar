@@ -8,7 +8,7 @@ from struct import (
 from threading import Event
 from unittest import TestCase
 
-from DefChord import (
+from RedStar import (
 	Application,
 	ApplicationRequestError,
 	ApplicationRequestResponse,
@@ -18,11 +18,11 @@ from DefChord import (
 	RequestRunnerRequestResponse,
 	ResponseWriter,
 )
-from DefChord.IO.RequestReader import (
+from RedStar.IO.RequestReader import (
 	ClientDisconnected,
 	RequestReader,
 )
-from DefChord.IO.WebSocket import (
+from RedStar.IO.WebSocket import (
 	WebSocket,
 	WebSocketError,
 	WebSocketFrame,
