@@ -65,8 +65,6 @@ def main() -> None:
 		published = {}
 	else:
 		published = {file['filename']: file['digests']['sha256'] for file in release['urls']}
-	if not new_version and not published:
-		raise RuntimeError('Cannot rebuild an unpublished distribution: {}'.format(PROJECT))
 	for path in paths:
 		if path.name in published:
 			if sha256(path.read_bytes()).hexdigest() != published[path.name]:
