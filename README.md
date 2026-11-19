@@ -1,4 +1,4 @@
-# DefChord
+﻿# DefChord
 
 The Modern Synchronous Python Web Application Framework
 
@@ -23,15 +23,15 @@ Python 3.9 이상이 필요합니다. 기본 서버는 추가 서버 의존성 �
 python -m pip install DefChord
 ```
 
-Gunicorn 또는 Uvicorn 어댑터를 사용할 때만 해당 extra를 설치합니다.
-기본 배포물에는 두 어댑터 코드가 없으며, extra가 동일 버전의 별도 구현체 패키지와 의존성을 설치합니다.
+Gunicorn 또는 Uvicorn 어댑터를 사용할 때 해당 extra를 설치합니다.
+두 어댑터 코드는 기본 배포물에 항상 포함되며, extra는 어댑터에 필요한 외부 의존성만 설치합니다.
 
 ```shell
 python -m pip install "DefChord[Gunicorn]"
 python -m pip install "DefChord[Uvicorn]"
 ```
 
-소스 코드를 수정하고 싶다면 [설치 격리와 개발·배포](./docs/Packaging.md)를 참고하세요.
+소스 코드를 수정하고 싶다면 [설치 구성과 개발·배포](./docs/Packaging.md)를 참고하세요.
 
 ## 빠른 시작
 

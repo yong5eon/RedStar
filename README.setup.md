@@ -10,15 +10,14 @@ DefChord is a synchronous Python web framework for handling HTTP requests with o
 python -m pip install DefChord
 ```
 
-The built-in Python HTTP server requires no additional server dependency. Optional extras provide Gunicorn and Uvicorn adapters:
-The core excludes their implementation files; each extra installs a separate, same-version adapter distribution and its dependencies.
+The built-in Python HTTP server requires no additional server dependency. The Gunicorn and Uvicorn adapter sources are always included; the following extras install only the external dependencies each adapter needs:
 
 ```shell
 python -m pip install "DefChord[Gunicorn]"
 python -m pip install "DefChord[Uvicorn]"
 ```
 
-Install the desired adapter extra when needed. Omitting an extra later does not remove an already installed adapter.
+Install the desired adapter extra when needed.
 
 ## Quick start
 
