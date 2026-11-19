@@ -99,7 +99,7 @@ class ReleaseTests(TestCase):
 			)
 		return
 
-	def test_same_version_rebuild_requires_published_distribution(self) -> None:
+	def test_same_version_rebuild_uploads_wheel_when_unpublished(self) -> None:
 		with TemporaryDirectory() as temporary, chdir(temporary), patch.dict(
 			environ,
 			self.environment(new_version='false'),
@@ -109,11 +109,16 @@ class ReleaseTests(TestCase):
 			with patch(
 				'prepare_upload.urlopen',
 				side_effect=missing(),
-			), self.assertRaisesRegex(
-				RuntimeError,
-				'unpublished distribution',
 			):
 				prepare()
+			self.assertEqual(
+				[path.name for path in Path('upload').iterdir()],
+				['redstar-1.2.3-7-py3-none-any.whl'],
+			)
+			self.assertIn(
+				'publish=true',
+				Path('output.txt').read_text(encoding='utf-8'),
+			)
 		return
 
 	def test_invalid_build_number_is_rejected(self) -> None:
