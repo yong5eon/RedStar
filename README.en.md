@@ -1,4 +1,4 @@
-# DefChord
+﻿# DefChord
 
 The Modern Synchronous Python Web Application Framework
 
@@ -23,15 +23,15 @@ Requires Python 3.9 or later. The built-in server is available without extra ser
 python -m pip install DefChord
 ```
 
-Install an extra only when using the corresponding Gunicorn or Uvicorn adapter.
-The core contains neither adapter's code. Each extra installs a separate, same-version implementation distribution and its dependencies.
+Install an extra when using the corresponding Gunicorn or Uvicorn adapter.
+Both adapters' code is always included in the distribution; each extra only installs that adapter's external dependencies.
 
 ```shell
 python -m pip install "DefChord[Gunicorn]"
 python -m pip install "DefChord[Uvicorn]"
 ```
 
-To modify the source code, see [installation isolation, development and distribution](./docs/Packaging.en.md).
+To modify the source code, see [installation layout, development and distribution](./docs/Packaging.en.md).
 
 ## Quick start
 

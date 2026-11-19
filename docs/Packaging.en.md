@@ -1,80 +1,57 @@
-# Installation isolation, development and distribution
+# Installation layout, development and distribution
 
 [한국어](./Packaging.md) · [Guide index](./README.en.md)
 
 ## Installed files
 
-`DefChord` contains only the core and built-in Python server. The `Gunicorn` and `Uvicorn` extras install the same-version `DefChord-Gunicorn` and `DefChord-Uvicorn` distributions and their external dependencies.
+A single `DefChord` distribution contains the core, the built-in Python server and the Gunicorn and Uvicorn adapter sources. The same files are installed whether or not extras are given, and the public Python import path is `DefChord`. No compatibility alias is provided for the former name.
+
+The `Gunicorn` and `Uvicorn` extras only install the external dependencies those adapters need.
+
+| Extra | Additional external dependencies |
+| --- | --- |
+| `Gunicorn` | `gunicorn>=23` |
+| `Uvicorn` | `uvicorn>=0.30`, `a2wsgi>=1.10` |
 
 Metrics use the `defchord_*` names, and OpenAPI vendor extensions use the `x-defchord-*` keys.
 
-In a new environment, unselected adapter files are absent. Omitting an extra later does not remove an installed adapter; explicitly uninstall its implementation distribution when no longer needed.
-
 ```mermaid
 flowchart LR
-  A["Install DefChord[Uvicorn]"] --> B["Core and Python server"]
-  A --> C["Same-version Uvicorn implementation"]
-  C --> D["uvicorn · a2wsgi"]
+  A["Install DefChord[Uvicorn]"] --> B["DefChord distribution: core · Python server · all adapter sources"]
+  A --> C["uvicorn · a2wsgi"]
 ```
+
+Without extras the adapter sources are still present, but an adapter cannot be imported or run until its external dependencies are installed.
 
 ## When you want to modify the source code
 
 To fix or add features, use a development installation. An **editable installation** connects Python to your local source code so it can use that code directly.
 
-Download the repository, activate a development virtual environment, and run the following command from the top-level folder containing `setup.py`. Here, `.` means the current folder and `-e` means an editable installation. You need pip 23 or later.
+Download the repository, activate a development virtual environment, and run the following command from the top-level folder containing `setup.py`. `.` means the current folder, `-e` means an editable installation, and pip 23 or later is required.
 
 ```shell
-python -m pip install -e .
+python -m pip install -e ".[Gunicorn,Uvicorn]"
 ```
 
-This connects only the common code and built-in Python server. To also work on the Uvicorn or Gunicorn adapters, list their names in `EXTRAS`. The following commands are separate examples: the first selects Uvicorn only, and the second selects both adapters.
-
-```shell
-python -m pip install -e . --config-settings EXTRAS=Uvicorn
-python -m pip install -e . --config-settings EXTRAS=Gunicorn,Uvicorn
-```
-
-Each run replaces the selection. For example, running with `EXTRAS=Uvicorn` after selecting both adapters removes the Gunicorn code from the development environment. Running without `EXTRAS` leaves only the common code and built-in Python server. Names are case-insensitive; unknown names produce an error. Required external libraries are installed, but libraries for deselected adapters are not automatically removed.
-
-### Try your changes
+All sources are always connected; the extras in brackets only decide whether the adapters' external libraries are installed. You can list only the adapters you need, for example `".[Uvicorn]"`.
 
 1. Edit the code under `src/`.
 2. Start your application or tests again in the same virtual environment to check the result. Code in an already running program is not automatically reloaded.
-3. If you add files or change the installation configuration, repeat the installation command with the desired `EXTRAS`.
+3. If you add files or change the installation configuration, repeat the installation command.
 
-The command connects the sources already on your computer. It does not fetch remote changes or force upgrades of external libraries. To select source code, use `--config-settings EXTRAS=Uvicorn` as shown above, not `pip install -e ".[Uvicorn]"`.
-
-### How the development connection works
-
-Only selected code is connected to the environment, and your IDE can find it too. Connections are managed automatically; you do not need to create links or add IDE search paths. Restart the language server if the IDE does not find the installed code right away. Multiple environments sharing the same sources keep their selections separate.
-
-Refresh keeps unchanged file connections and atomically replaces each changed connection. It removes only deselected managed files and preserves other files such as `.DS_Store`. Switching all files simultaneously is not guaranteed.
-
-If creating a connection fails, resolve the cause and repeat the installation command with the desired `EXTRAS`. The next refresh also reconciles files added before the failure with your selection.
-
-Each file's old bytecode cache is removed before replacing its connection. If a later connection fails, retrying therefore does not leave an already replaced file using stale cached code.
-
-On Windows, hard links are used if symbolic-link permissions are unavailable. In that case, keep the sources and virtual environment on the same drive. This connection management applies only to development installations, not regular wheel installations.
+The command connects the sources already on your computer and does not fetch remote changes. The connection uses setuptools' standard editable installation. Restart the language server if the IDE does not find the installed code right away.
 
 ## Build and validate
 
-Installation checks explicitly select the locally built core and implementation wheels. Same-version files from PyPI cannot replace those validation artifacts; external dependencies still come from the package index.
-
-Build and validate all distributions from the repository root:
+Build and validate the distribution from the repository root:
 
 ```shell
 python -m pip install "pip>=23" build "setuptools>=77" "setuptools-scm>=8,<10" wheel twine
-python .github/scripts/build_distributions.py
+python -m build
 python .github/scripts/check_distributions.py --editable
 python -m twine check --strict dist/*
 ```
 
-The build script fixes the version once, then creates each target's wheel and sdist in `dist/`. Use an output directory without other versions' artifacts. `--outdir` selects another directory; `--wheel` builds only wheels.
+`python -m build` creates one wheel and one sdist for `DefChord` in `dist/`. Use an output directory without other versions' artifacts. The check script verifies the wheel's name, extras and adapter sources, then installs the `DefChord[Gunicorn,Uvicorn]` wheel and an editable installation into fresh virtual environments and validates `pip check` and imports. The sdist contains the source tree and the `README.setup.md` read by `setup.py`.
 
-Each sdist includes `.distribution-target`, so `python -m build` recreates the same distribution without a target environment variable. Changing an sdist's target is rejected.
-
-`TargetEggInfo.find_sources()` in `setup.py` maintains the additional build sources included in sdists. No separate `MANIFEST.in` is used. This source list does not install helper scripts into regular wheels.
-
-Sdists contain the shared source tree. Unselected implementation files are excluded from built wheels and installed files; the source archives themselves are not split into isolated source trees.
-
-CI builds and checks supported Python versions. Releases verify every distribution name, version and build number, then publish implementations before the core. Publishing permissions and the PyPI token must cover all distribution names. Local builds do not publish anything.
+CI builds and checks supported Python versions. Releases verify the `DefChord` name, version and build number before publishing. Local builds do not publish anything.

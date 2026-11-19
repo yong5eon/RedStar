@@ -1,4 +1,4 @@
-# Installation and your first application
+﻿# Installation and your first application
 
 [← Guide index](./README.en.md)
 
@@ -21,7 +21,7 @@ python -m pip install "DefChord[Gunicorn]"
 python -m pip install "DefChord[Uvicorn]"
 ```
 
-Unselected adapter code is not installed. To modify the source code, see [installation isolation, development and distribution](./Packaging.en.md).
+Adapter sources are always installed; extras only install external dependencies. To modify the source code, see [installation layout, development and distribution](./Packaging.en.md).
 
 ## The smallest application
 
@@ -123,8 +123,8 @@ To see an error hook return a custom response, start the server and request `GET
 Run the repository tests after installing the checkout in editable mode:
 
 ```shell
-python -m pip install -e . --config-settings EXTRAS=Gunicorn,Uvicorn
+python -m pip install -e ".[Gunicorn,Uvicorn]"
 python -m unittest discover -s tests
 ```
 
-The full test suite imports optional adapters, so install both implementations with the command above. Plain `python -m pip install -e .` connects only the common code and built-in Python server. After editing code, run the tests again to check the result. Repeat the installation command with the desired selection after adding files or changing the installation configuration. See [installation isolation, development and distribution](./Packaging.en.md) for development instructions. Gunicorn/Uvicorn-specific execution and tests remain subject to server platform requirements.
+All adapter sources are always connected, and the full test suite needs the adapters' external dependencies, so install both extras with the command above. After editing code, run the tests again to check the result. Repeat the installation command after adding files or changing the installation configuration. See [installation layout, development and distribution](./Packaging.en.md) for development instructions. Gunicorn/Uvicorn-specific execution and tests remain subject to server platform requirements.

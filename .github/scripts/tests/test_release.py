@@ -22,10 +22,6 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from zipfile import ZipFile
 
-from build_distributions import (
-	IMPLEMENTATIONS,
-	PROJECT,
-)
 from prepare_upload import main as prepare
 
 
@@ -40,67 +36,62 @@ def chdir(directory: str) -> Iterator[None]:
 	return
 
 
+def missing() -> HTTPError:
+	return HTTPError(
+		'https://pypi.org',
+		404,
+		'missing',
+		None,
+		None,
+	)
+
+
 class ReleaseTests(TestCase):
+	def environment(self, build: str = '7', new_version: str = 'true') -> dict[str, str]:
+		return {
+			'RELEASE_VERSION': '1.2.3',
+			'WHEEL_BUILD': build,
+			'NEW_VERSION': new_version,
+			'GITHUB_OUTPUT': 'output.txt',
+		}
+
 	def create_distributions(self) -> None:
 		Path('dist').mkdir()
-		for project in (
-			PROJECT,
-			*(f'{PROJECT}-{target}' for target in IMPLEMENTATIONS),
-		):
-			name = project.lower().replace(
-				'-',
-				'_',
+		metadata = b'Metadata-Version: 2.4\nName: DefChord\nVersion: 1.2.3\n\n'
+		with ZipFile(
+			'dist/defchord-1.2.3-7-py3-none-any.whl',
+			'w',
+		) as archive:
+			archive.writestr(
+				'defchord-1.2.3.dist-info/METADATA',
+				metadata,
 			)
-			metadata = f'Metadata-Version: 2.4\nName: {project}\nVersion: 1.2.3\n\n'.encode()
-			with ZipFile(
-				f'dist/{name}-1.2.3-7-py3-none-any.whl',
-				'w',
-			) as archive:
-				archive.writestr(
-					f'{name}-1.2.3.dist-info/METADATA',
-					metadata,
-				)
-			with open_tar(
-				f'dist/{name}-1.2.3.tar.gz',
-				'w:gz',
-			) as archive:
-				info = TarInfo(f'{name}-1.2.3/PKG-INFO')
-				info.size = len(metadata)
-				archive.addfile(
-					info,
-					BytesIO(metadata),
-				)
+		with open_tar(
+			'dist/defchord-1.2.3.tar.gz',
+			'w:gz',
+		) as archive:
+			info = TarInfo('defchord-1.2.3/PKG-INFO')
+			info.size = len(metadata)
+			archive.addfile(
+				info,
+				BytesIO(metadata),
+			)
 		return
 
-	def test_new_release_stages_implementations_separately_from_core(self) -> None:
+	def test_new_release_stages_one_wheel_and_one_source(self) -> None:
 		with TemporaryDirectory() as temporary, chdir(temporary), patch.dict(
 			environ,
-			{
-				'RELEASE_VERSION': '1.2.3',
-				'WHEEL_BUILD': '7',
-				'NEW_VERSION': 'true',
-				'GITHUB_OUTPUT': 'output.txt',
-			},
+			self.environment(),
 		):
 			self.create_distributions()
 			with patch(
 				'prepare_upload.urlopen',
-				side_effect=HTTPError(
-					'https://pypi.org',
-					404,
-					'missing',
-					None,
-					None,
-				),
+				side_effect=missing(),
 			):
 				prepare()
 			self.assertEqual(
-				len(list(Path('upload/core').iterdir())),
+				len(list(Path('upload').iterdir())),
 				2,
-			)
-			self.assertEqual(
-				len(list(Path('upload/implementations').iterdir())),
-				2 * len(IMPLEMENTATIONS),
 			)
 			self.assertIn(
 				'publish=true',
@@ -108,28 +99,16 @@ class ReleaseTests(TestCase):
 			)
 		return
 
-	def test_same_version_rebuild_requires_all_distributions_to_exist(self) -> None:
+	def test_same_version_rebuild_requires_published_distribution(self) -> None:
 		with TemporaryDirectory() as temporary, chdir(temporary), patch.dict(
 			environ,
-			{
-				'RELEASE_VERSION': '1.2.3',
-				'WHEEL_BUILD': '7',
-				'NEW_VERSION': 'false',
-				'GITHUB_OUTPUT': 'output.txt',
-			},
+			self.environment(new_version='false'),
 		):
 			self.create_distributions()
-			for source in Path('dist').glob('*.tar.gz'):
-				source.unlink()
+			Path('dist/defchord-1.2.3.tar.gz').unlink()
 			with patch(
 				'prepare_upload.urlopen',
-				side_effect=HTTPError(
-					'https://pypi.org',
-					404,
-					'missing',
-					None,
-					None,
-				),
+				side_effect=missing(),
 			), self.assertRaisesRegex(
 				RuntimeError,
 				'unpublished distribution',
@@ -140,11 +119,7 @@ class ReleaseTests(TestCase):
 	def test_invalid_build_number_is_rejected(self) -> None:
 		with TemporaryDirectory() as temporary, chdir(temporary), patch.dict(
 			environ,
-			{
-				'RELEASE_VERSION': '1.2.3',
-				'WHEEL_BUILD': '8',
-				'NEW_VERSION': 'true',
-			},
+			self.environment(build='8'),
 		):
 			self.create_distributions()
 			with self.assertRaisesRegex(
@@ -154,20 +129,16 @@ class ReleaseTests(TestCase):
 				prepare()
 		return
 
-	def test_missing_implementation_is_rejected(self) -> None:
+	def test_missing_wheel_is_rejected(self) -> None:
 		with TemporaryDirectory() as temporary, chdir(temporary), patch.dict(
 			environ,
-			{
-				'RELEASE_VERSION': '1.2.3',
-				'WHEEL_BUILD': '7',
-				'NEW_VERSION': 'true',
-			},
+			self.environment(),
 		):
 			self.create_distributions()
 			next(Path('dist').glob('*.whl')).unlink()
 			with self.assertRaisesRegex(
 				ValueError,
-				'Missing core or implementation',
+				'exactly one wheel',
 			):
 				prepare()
 		return
@@ -175,12 +146,7 @@ class ReleaseTests(TestCase):
 	def test_published_identical_artifacts_are_not_uploaded_again(self) -> None:
 		with TemporaryDirectory() as temporary, chdir(temporary), patch.dict(
 			environ,
-			{
-				'RELEASE_VERSION': '1.2.3',
-				'WHEEL_BUILD': '7',
-				'NEW_VERSION': 'true',
-				'GITHUB_OUTPUT': 'output.txt',
-			},
+			self.environment(),
 		):
 			self.create_distributions()
 			release = {
@@ -192,13 +158,9 @@ class ReleaseTests(TestCase):
 					for path in Path('dist').iterdir()
 				],
 			}
-			responses = [
-				BytesIO(dumps(release).encode())
-				for _ in range(len(IMPLEMENTATIONS) + 1)
-			]
 			with patch(
 				'prepare_upload.urlopen',
-				side_effect=responses,
+				return_value=BytesIO(dumps(release).encode()),
 			):
 				prepare()
 			self.assertIn(
@@ -210,12 +172,7 @@ class ReleaseTests(TestCase):
 	def test_published_different_artifacts_are_rejected(self) -> None:
 		with TemporaryDirectory() as temporary, chdir(temporary), patch.dict(
 			environ,
-			{
-				'RELEASE_VERSION': '1.2.3',
-				'WHEEL_BUILD': '7',
-				'NEW_VERSION': 'true',
-				'GITHUB_OUTPUT': 'output.txt',
-			},
+			self.environment(),
 		):
 			self.create_distributions()
 			release = {
