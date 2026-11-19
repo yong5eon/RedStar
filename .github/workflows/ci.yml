@@ -308,7 +308,7 @@ jobs:
             echo "::error::Configure PYPI_API_TOKEN in the pypi environment or repository Actions secrets."
             exit 1
           fi
-          python -m twine upload --non-interactive upload/*
+          python -m twine upload --verbose --non-interactive upload/*
       - name: Publish GitHub Release with verified distributions
         env:
           GH_TOKEN: ${{ github.token }}
