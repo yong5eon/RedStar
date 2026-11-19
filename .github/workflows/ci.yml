@@ -96,9 +96,15 @@ jobs:
               raise ValueError('Multiple merged PRs found for the release commit')
           if environ['NEW_VERSION'] == 'false':
               tag = environ['RELEASE_TAG']
-              release = loads(check_output([
-                  'gh', 'api', f'repos/{environ["GITHUB_REPOSITORY"]}/releases/tags/{tag}',
-              ]))
+              try:
+                  release = loads(check_output([
+                      'gh', 'api', f'repos/{environ["GITHUB_REPOSITORY"]}/releases/tags/{tag}',
+                  ]))
+              except CalledProcessError as error:
+                  raise ValueError(
+                      f'GitHub Release not found for reused version {tag}; '
+                      'the tag may remain from a failed publish run'
+                  ) from error
               if release['tag_name'] != tag or not release.get('body', '').strip():
                   raise ValueError(f'Existing release notes are missing or empty: {tag}')
               body = release['body'].encode('utf-8')
