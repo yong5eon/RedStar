@@ -2,9 +2,8 @@
 
 The Modern Synchronous Python Web Application Framework
 
-**Just def.**<br>
-**Define your code. Compose your chord.**<br>
-**You don't need to await this.**
+**Fast without the fuss.**<br>
+**Elegant without the async.**
 
 [English](./README.en.md)
 

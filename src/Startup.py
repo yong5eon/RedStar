@@ -30,7 +30,7 @@ LOGO = r"""
 ███▀▀██▄  ██▄█▀ ██ ██    ▀████  ██  ▄█▀██ ██ ▀▀
 ███  ▀███ ▀█▄▄▄ ▀████ ███████▀  ██  ▀█▄██ ██
 
-Just def. Define your code. Compose your chord. You don't need to await this.
+Fast without the fuss. Elegant without the async.
 """
 
 

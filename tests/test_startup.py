@@ -275,8 +275,7 @@ class StartupTests(TestCase):
 			colored_rows[0].index('\033[38;5;214m'),
 		)
 		self.assertIn(
-			'Just def. Define your code. Compose your chord. '
-			"You don't need to await this.",
+			'Fast without the fuss. Elegant without the async.',
 			colored_logo,
 		)
 		self.assertNotIn('Let web apps do the work.', colored_logo)
