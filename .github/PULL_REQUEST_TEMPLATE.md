@@ -25,8 +25,9 @@
 - [ ] 마지막 커밋의 `changes/<전체 커밋 SHA>` annotated tag를 PR 출발 저장소에 올렸습니다.
 
 <!--
-master 병합 후 새 버전 릴리스 본문은 병합된 PR의 마지막 커밋(`head.sha`)에 대한 `changes/<전체 커밋 SHA>` annotated tag 메시지를 사용합니다.
-master에 직접 푸시하는 경우에는 푸시 전에 원본 저장소에 같은 형식의 태그를 올려 주세요. 후속 커밋을 추가하면 SHA가 바뀌므로 태그를 다시 만들어야 합니다.
+master 병합 시 PR에 연결된 이슈의 유형이나 레이블에 `feature`(minor 증가) 또는 `bug`·`fix`(patch 증가)가 있으면 새 버전이 릴리스되며, 그 외에는 공개 버전을 유지하고 wheel 빌드만 배포합니다.
+새 버전 릴리스 본문은 병합된 PR의 마지막 커밋(`head.sha`)에 대한 `changes/<전체 커밋 SHA>` annotated tag 메시지를 사용합니다.
+새 버전이 릴리스되는 PR은 이 태그가 필요합니다. master 직접 푸시는 공개 버전을 유지하므로 태그가 필요하지 않습니다. 후속 커밋을 추가하면 SHA가 바뀌므로 태그를 다시 만들어야 합니다.
 
 SHA=$(git rev-parse HEAD)
 git tag -a "changes/$SHA" -F <변경 로그 파일>
