@@ -39,7 +39,11 @@ def check(
 
 
 def python_in(directory: Path) -> str:
-	EnvBuilder(with_pip=True).create(directory)
+	# The pip bundled with older Python versions falls back to legacy `setup.py develop`, which ignores package_dir remapping
+	EnvBuilder(
+		with_pip=True,
+		upgrade_deps=True,
+	).create(directory)
 	return str(directory / ('Scripts/python.exe' if environ.get('OS') == 'Windows_NT' else 'bin/python'))
 
 
