@@ -55,7 +55,7 @@ setup(
 		'setuptools>=77',
 		'setuptools-scm>=8,<10',
 	],
-	description='The Modern Synchronous Python Web Application Framework',
+	description='The Modern Python WSGI Framework',
 	long_description=Path('README.setup.md').read_text(encoding='utf-8'),
 	long_description_content_type='text/markdown',
 	author='Heo Yongseon',
