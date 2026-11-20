@@ -72,8 +72,8 @@ server.run()
 | Adapter | Install | Behavior and considerations |
 | --- | --- | --- |
 | Python | Default install | Uses the standard library threaded HTTP server; suitable for development and basic use |
-| Gunicorn | `RedStar[Gunicorn]` | POSIX only. Cannot run on Windows; use Linux or WSL |
-| Uvicorn | `RedStar[Uvicorn]` | Runs the synchronous app through the `a2wsgi` boundary. Application instances require `workers=1`, `reload=False` |
+| Gunicorn | `py-wsgi-redstar[Gunicorn]` | POSIX only. Cannot run on Windows; use Linux or WSL |
+| Uvicorn | `py-wsgi-redstar[Uvicorn]` | Runs the synchronous app through the `a2wsgi` boundary. Application instances require `workers=1`, `reload=False` |
 
 The Gunicorn adapter accepts `host`, `port`, `workers`, `worker_class`, and additional Gunicorn options. It raises an error when run on Windows, so do not try to run it in native Windows.
 

@@ -8,6 +8,7 @@ from setuptools import (
 )
 
 PACKAGE = 'RedStar'
+DISTRIBUTION = 'py-wsgi-redstar'
 SOURCE = 'src'
 DEPENDENCIES = {
 	'Gunicorn': ['gunicorn>=23'],
@@ -48,7 +49,7 @@ for package in find_packages(SOURCE):
 	)
 
 setup(
-	name=PACKAGE,
+	name=DISTRIBUTION,
 	use_scm_version=SCM_VERSION,
 	setup_requires=[
 		'setuptools>=77',
