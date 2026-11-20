@@ -1,6 +1,6 @@
 ﻿# RedStar
 
-The Modern Synchronous Python Web Application Framework
+The Modern Python WSGI Framework
 
 **Fast without the fuss.**<br>
 **Elegant without the async.**

@@ -1,6 +1,6 @@
 # RedStar
 
-The Modern Synchronous Python Web Application Framework
+The Modern Python WSGI Framework
 
 RedStar is a synchronous Python web framework for handling HTTP requests with ordinary methods. Python 3.9 or later is required.
 
