@@ -7,14 +7,16 @@ RedStar is a synchronous Python web framework for handling HTTP requests with or
 ## Installation
 
 ```shell
-python -m pip install RedStar
+python -m pip install py-wsgi-redstar
 ```
+
+The PyPI distribution name is `py-wsgi-redstar`, and you import it in Python as `RedStar` (`from RedStar import Application`).
 
 The built-in Python HTTP server requires no additional server dependency. The Gunicorn and Uvicorn adapter sources are always included; the following extras install only the external dependencies each adapter needs:
 
 ```shell
-python -m pip install "RedStar[Gunicorn]"
-python -m pip install "RedStar[Uvicorn]"
+python -m pip install "py-wsgi-redstar[Gunicorn]"
+python -m pip install "py-wsgi-redstar[Uvicorn]"
 ```
 
 Install the desired adapter extra when needed.

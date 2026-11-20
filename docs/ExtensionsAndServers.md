@@ -72,8 +72,8 @@ server.run()
 | Adapter | 설치 | 동작과 주의사항 |
 | --- | --- | --- |
 | Python | 기본 설치 | 표준 라이브러리의 threaded HTTP 서버 사용. 개발·기본 실행에 적합 |
-| Gunicorn | `RedStar[Gunicorn]` | POSIX 플랫폼용. Windows에서는 실행 불가하며 Linux 또는 WSL 필요 |
-| Uvicorn | `RedStar[Uvicorn]` | `a2wsgi` 경계를 통해 동기 앱 실행. 앱 인스턴스 설정은 `workers=1`, `reload=False`로 제한 |
+| Gunicorn | `py-wsgi-redstar[Gunicorn]` | POSIX 플랫폼용. Windows에서는 실행 불가하며 Linux 또는 WSL 필요 |
+| Uvicorn | `py-wsgi-redstar[Uvicorn]` | `a2wsgi` 경계를 통해 동기 앱 실행. 앱 인스턴스 설정은 `workers=1`, `reload=False`로 제한 |
 
 Gunicorn adapter는 `host`, `port`, `workers`, `worker_class`와 추가 Gunicorn 옵션을 받습니다. Windows에서는 실행 시 오류를 내므로 native Windows 환경에서 Gunicorn 실행을 시도하지 마세요.
 

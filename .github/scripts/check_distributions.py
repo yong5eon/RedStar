@@ -9,6 +9,7 @@ from venv import EnvBuilder
 from zipfile import ZipFile
 
 PROJECT = 'RedStar'
+DISTRIBUTION = 'py-wsgi-redstar'
 MODULES = (
 	'Adapter.Implements.Python',
 	'Adapter.Implements.Gunicorn',
@@ -64,7 +65,7 @@ def main() -> None:
 		metadata_path, = (name for name in archive.namelist() if name.endswith('.dist-info/METADATA'))
 		metadata = BytesParser().parsebytes(archive.read(metadata_path))
 		names = archive.namelist()
-	assert metadata['Name'] == PROJECT, metadata['Name']
+	assert metadata['Name'] == DISTRIBUTION, metadata['Name']
 	assert sorted(metadata.get_all('Provides-Extra')) == ['gunicorn', 'uvicorn']
 	for module in MODULES:
 		prefix = PROJECT + '/' + module.replace(
@@ -137,7 +138,7 @@ def main() -> None:
 				],
 				directory,
 			)
-	print(f'{PROJECT}: single distribution, extras and installation checks passed')
+	print(f'{DISTRIBUTION}: single distribution, extras and installation checks passed')
 	return
 
 

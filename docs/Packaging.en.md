@@ -4,7 +4,7 @@
 
 ## Installed files
 
-A single `RedStar` distribution contains the core, the built-in Python server and the Gunicorn and Uvicorn adapter sources. The same files are installed whether or not extras are given, and the public Python import path is `RedStar`. No compatibility alias is provided for the former name.
+A single `py-wsgi-redstar` distribution contains the core, the built-in Python server and the Gunicorn and Uvicorn adapter sources. The same files are installed whether or not extras are given, and the public Python import path is `RedStar` (the PyPI distribution name and the import name differ). No compatibility alias is provided for the former name.
 
 The `Gunicorn` and `Uvicorn` extras only install the external dependencies those adapters need.
 
@@ -17,7 +17,7 @@ Metrics use the `redstar_*` names, and OpenAPI vendor extensions use the `x-reds
 
 ```mermaid
 flowchart LR
-  A["Install RedStar[Uvicorn]"] --> B["RedStar distribution: core · Python server · all adapter sources"]
+  A["Install py-wsgi-redstar[Uvicorn]"] --> B["py-wsgi-redstar distribution: core · Python server · all adapter sources"]
   A --> C["uvicorn · a2wsgi"]
 ```
 
@@ -52,6 +52,6 @@ python .github/scripts/check_distributions.py --editable
 python -m twine check --strict dist/*
 ```
 
-`python -m build` creates one wheel and one sdist for `RedStar` in `dist/`. Use an output directory without other versions' artifacts. The check script verifies the wheel's name, extras and adapter sources, then installs the `RedStar[Gunicorn,Uvicorn]` wheel and an editable installation into fresh virtual environments and validates `pip check` and imports. The sdist contains the source tree and the `README.setup.md` read by `setup.py`.
+`python -m build` creates one wheel and one sdist for `py-wsgi-redstar` in `dist/`. Use an output directory without other versions' artifacts. The check script verifies the wheel's name, extras and adapter sources, then installs the `py-wsgi-redstar[Gunicorn,Uvicorn]` wheel and an editable installation into fresh virtual environments and validates `pip check` and imports. The sdist contains the source tree and the `README.setup.md` read by `setup.py`.
 
-CI builds and checks supported Python versions. Releases verify the `RedStar` name, version and build number before publishing. Local builds do not publish anything.
+CI builds and checks supported Python versions. Releases verify the `py-wsgi-redstar` name, version and build number before publishing. Local builds do not publish anything.

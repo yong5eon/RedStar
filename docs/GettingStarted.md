@@ -11,14 +11,16 @@ RedStar는 동기식 Python 웹 프레임워크입니다. HTTP 서버가 받은 
 Python 3.9 이상이 필요합니다. 기본 설치는 Python 표준 라이브러리 기반 서버를 포함하며, Gunicorn과 Uvicorn adapter는 선택 사항입니다.
 
 ```shell
-python -m pip install RedStar
+python -m pip install py-wsgi-redstar
 ```
+
+PyPI 배포명은 `py-wsgi-redstar`이고, Python 코드에서는 `RedStar`로 가져옵니다(`from RedStar import Application`).
 
 다른 서버 adapter를 사용할 때 해당 extra를 설치합니다.
 
 ```shell
-python -m pip install "RedStar[Gunicorn]"
-python -m pip install "RedStar[Uvicorn]"
+python -m pip install "py-wsgi-redstar[Gunicorn]"
+python -m pip install "py-wsgi-redstar[Uvicorn]"
 ```
 
 어댑터 소스는 항상 설치되며 extra는 외부 의존성만 설치합니다. 소스 코드를 수정하고 싶다면 [설치 구성과 개발·배포](./Packaging.md)를 참고하세요.

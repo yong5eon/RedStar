@@ -9,7 +9,7 @@ from urllib.error import HTTPError
 from urllib.request import urlopen
 from zipfile import ZipFile
 
-PROJECT = 'RedStar'
+DISTRIBUTION = 'py-wsgi-redstar'
 
 
 def main() -> None:
@@ -28,7 +28,7 @@ def main() -> None:
 			if name.endswith('.dist-info/METADATA')
 		)
 		metadata = BytesParser().parsebytes(archive.read(metadata_path))
-	if metadata['Name'] != PROJECT or metadata['Version'] != version:
+	if metadata['Name'] != DISTRIBUTION or metadata['Version'] != version:
 		raise ValueError('Unexpected wheel name or version: {}'.format(wheel.name))
 	paths.append(wheel)
 	sources = list(Path('dist').glob('*.tar.gz'))
@@ -48,14 +48,14 @@ def main() -> None:
 				raise ValueError('Missing source metadata: {}'.format(source.name))
 			with stream:
 				metadata = BytesParser().parse(stream)
-		if metadata['Name'] != PROJECT or metadata['Version'] != version:
+		if metadata['Name'] != DISTRIBUTION or metadata['Version'] != version:
 			raise ValueError('Unexpected source name or version: {}'.format(source.name))
 		paths.append(source)
 	upload = Path('upload')
 	upload.mkdir(parents=True)
 	try:
 		with urlopen(
-			f'https://pypi.org/pypi/{PROJECT}/{version}/json',
+			f'https://pypi.org/pypi/{DISTRIBUTION}/{version}/json',
 			timeout=30,
 		) as response:
 			release = load(response)

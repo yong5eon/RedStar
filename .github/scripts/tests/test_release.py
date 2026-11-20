@@ -57,20 +57,20 @@ class ReleaseTests(TestCase):
 
 	def create_distributions(self) -> None:
 		Path('dist').mkdir()
-		metadata = b'Metadata-Version: 2.4\nName: RedStar\nVersion: 1.2.3\n\n'
+		metadata = b'Metadata-Version: 2.4\nName: py-wsgi-redstar\nVersion: 1.2.3\n\n'
 		with ZipFile(
-			'dist/redstar-1.2.3-7-py3-none-any.whl',
+			'dist/py_wsgi_redstar-1.2.3-7-py3-none-any.whl',
 			'w',
 		) as archive:
 			archive.writestr(
-				'redstar-1.2.3.dist-info/METADATA',
+				'py_wsgi_redstar-1.2.3.dist-info/METADATA',
 				metadata,
 			)
 		with open_tar(
-			'dist/redstar-1.2.3.tar.gz',
+			'dist/py_wsgi_redstar-1.2.3.tar.gz',
 			'w:gz',
 		) as archive:
-			info = TarInfo('redstar-1.2.3/PKG-INFO')
+			info = TarInfo('py_wsgi_redstar-1.2.3/PKG-INFO')
 			info.size = len(metadata)
 			archive.addfile(
 				info,
@@ -105,7 +105,7 @@ class ReleaseTests(TestCase):
 			self.environment(new_version='false'),
 		):
 			self.create_distributions()
-			Path('dist/redstar-1.2.3.tar.gz').unlink()
+			Path('dist/py_wsgi_redstar-1.2.3.tar.gz').unlink()
 			with patch(
 				'prepare_upload.urlopen',
 				side_effect=missing(),
@@ -113,7 +113,7 @@ class ReleaseTests(TestCase):
 				prepare()
 			self.assertEqual(
 				[path.name for path in Path('upload').iterdir()],
-				['redstar-1.2.3-7-py3-none-any.whl'],
+				['py_wsgi_redstar-1.2.3-7-py3-none-any.whl'],
 			)
 			self.assertIn(
 				'publish=true',
