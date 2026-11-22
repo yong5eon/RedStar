@@ -233,7 +233,7 @@ class Application:
 				route for route in self.router.routes
 				if route not in self.extension_routes
 			)
-			self.router.routes[:] = previous_routes
+			self.router.replace(previous_routes)
 			self.extension_routes.clear()
 			previous_hooks = tuple(self.request_hook_registrations)
 			self.logger.info('Application starting: extensions=%s', len(self.exts))
@@ -260,7 +260,7 @@ class Application:
 							'Cleanup failed after extension startup failure: extension=%s',
 							type(extension).__qualname__,
 						)
-				self.router.routes[:] = previous_routes
+				self.router.replace(previous_routes)
 				self.extension_routes.clear()
 				self.started_extensions.clear()
 				self.request_hook_registrations[:] = previous_hooks

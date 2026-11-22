@@ -271,10 +271,13 @@ class ExtensionHookTests(TestCase):
 			Echo(('/first',), on_cleanup=ActionCleanup(cleanup_fail)),
 			Echo(('/second',), on_startup=ActionStartup(fail)),
 		))
+		app.add(General)
+		general_route = app.router.routes[0]
 		with self.assertLogs('Application', level='ERROR'):
 			with self.assertRaisesRegex(ValueError, 'startup failed'):
 				app.start()
-		self.assertEqual(app.router.routes, [])
+		self.assertEqual(app.router.routes, [general_route])
+		self.assertIs(app.router.matches('/general')['GET'][0], general_route)
 		self.assertEqual(app.started_extensions, [])
 		app.stop()
 		return
