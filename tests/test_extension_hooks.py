@@ -1,4 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import (
+	ThreadPoolExecutor,
+	TimeoutError as FutureTimeoutError,
+)
 from io import BytesIO
 from threading import Event
 from typing import (
@@ -869,7 +872,7 @@ class RequestHookRegistrationTests(TestCase):
 				self.assertEqual(events, ['request'])
 				request_future = executor.submit(dispatch)
 				self.assertTrue(attempted.wait(timeout=5))
-				with self.assertRaises(TimeoutError):
+				with self.assertRaises(FutureTimeoutError):
 					request_future.result(timeout=0.1)
 			finally:
 				release.set()
@@ -883,7 +886,7 @@ class RequestHookRegistrationTests(TestCase):
 			stopping_request_future = executor.submit(dispatch)
 			try:
 				self.assertTrue(attempted.wait(timeout=5))
-				with self.assertRaises(TimeoutError):
+				with self.assertRaises(FutureTimeoutError):
 					stopping_request_future.result(timeout=0.1)
 			finally:
 				cleanup_release.set()
