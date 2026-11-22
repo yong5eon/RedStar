@@ -7,6 +7,7 @@ from asyncio import (
 )
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
+from logging import getLogger
 from typing import Optional
 from a2wsgi.asgi_typing import (
 	Receive,
@@ -47,7 +48,21 @@ class Input(Body):
 		self.finished = False
 		self.disconnected = False
 		self.failure: Optional[Exception] = None
+		self.disconnect_errors: list[ClientDisconnected] = []
 		return
+
+	def disconnect_error(self, message: str) -> ClientDisconnected:
+		error = ClientDisconnected(message)
+		self.disconnect_errors.append(error)
+		return error
+
+	def caused_by_disconnect(self, error: BaseException) -> bool:
+		current: Optional[BaseException] = error
+		while current is not None:
+			if any(current is original for original in self.disconnect_errors):
+				return True
+			current = current.__cause__
+		return False
 
 	async def pump(self) -> None:
 		try:
@@ -75,14 +90,14 @@ class Input(Body):
 		if self.failure is not None:
 			raise self.failure
 		if self.disconnected:
-			raise ClientDisconnected('Client disconnected while receiving request')
+			raise self.disconnect_error('Client disconnected while receiving request')
 		while not self.buffer and not self.finished:
 			data = await self.messages.get()
 			if not data:
 				if self.failure is not None:
 					raise self.failure
 				if self.disconnected:
-					raise ClientDisconnected('Client disconnected while receiving request')
+					raise self.disconnect_error('Client disconnected while receiving request')
 				self.finished = True
 			else:
 				self.buffer.extend(data)
@@ -93,7 +108,7 @@ class Input(Body):
 					if self.failure is not None:
 						raise self.failure
 					if self.disconnected:
-						raise ClientDisconnected('Client disconnected while receiving request')
+						raise self.disconnect_error('Client disconnected while receiving request')
 					self.finished = True
 				else:
 					self.buffer.extend(data)
@@ -196,7 +211,7 @@ class Middleware:
 			if body.failure is not None:
 				raise body.failure
 			if body.disconnected:
-				raise ClientDisconnected('Client disconnected while sending response')
+				raise body.disconnect_error('Client disconnected while sending response')
 			await send(message)
 			return
 
@@ -243,6 +258,10 @@ class Middleware:
 				'body': b'',
 				'more_body': False,
 			})
+		except ClientDisconnected as error:
+			if not body.caused_by_disconnect(error):
+				raise
+			getLogger('Server.Uvicorn').warning('ASGI request stopped after client disconnect')
 		except CancelledError:
 			portal.close()
 			with suppress(ClientDisconnected):

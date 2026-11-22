@@ -7,12 +7,167 @@ from asyncio import (
 )
 from contextlib import suppress
 from importlib.util import find_spec
+from threading import Event
+from typing import (
+	Any,
+	Callable,
+	Mapping,
+)
 from unittest import (
 	IsolatedAsyncioTestCase,
 	skipUnless,
 )
+from unittest.mock import (
+	AsyncMock,
+	patch,
+)
 
-from RedStar.IO.RequestReader import ClientDisconnected
+from RedStar import Application
+from RedStar.IO.RequestReader import (
+	ClientDisconnected,
+	RequestReader,
+)
+
+
+class CompletedApplication:
+	def __init__(self) -> None:
+		self.disconnected = Event()
+		return
+
+	def __call__(
+		self,
+		environ: Mapping[str, Any],
+		start_response: Callable[..., object],
+	) -> tuple[bytes, ...]:
+		if not self.disconnected.wait(2):
+			raise TimeoutError('Disconnect was not observed')
+		return ()
+
+	async def receive(self) -> dict[str, str]:
+		self.disconnected.set()
+		return {'type': 'http.disconnect'}
+
+
+class FailingApplication(CompletedApplication):
+	def __call__(
+		self,
+		environ: Mapping[str, Any],
+		start_response: Callable[..., object],
+	) -> tuple[bytes, ...]:
+		super().__call__(environ, start_response)
+		raise ClientDisconnected('unrelated application failure')
+
+
+class ReadingApplication(CompletedApplication):
+	def __call__(
+		self,
+		environ: Mapping[str, Any],
+		start_response: Callable[..., object],
+	) -> tuple[bytes, ...]:
+		super().__call__(environ, start_response)
+		RequestReader(environ['wsgi.input'], size=1).read()
+		return ()
+
+
+@skipUnless(find_spec('a2wsgi') is not None, 'a2wsgi required')
+class MiddlewareDisconnectTests(IsolatedAsyncioTestCase):
+	async def test_disconnect_before_final_response_is_not_an_asgi_error(self) -> None:
+		from RedStar.Adapter.Implements.Uvicorn.HTTP import Middleware
+
+		middleware = Middleware(Application(), 1, 2)
+		application = CompletedApplication()
+		scope = {
+			'type': 'http',
+			'http_version': '1.1',
+			'method': 'GET',
+			'path': '/',
+			'query_string': b'',
+			'headers': [],
+			'server': ('localhost', 80),
+			'client': ('localhost', 1234),
+		}
+		try:
+			with patch.object(middleware, 'application', application):
+				with self.assertLogs('Server.Uvicorn', level='WARNING'):
+					await wait_for(middleware(scope, application.receive, AsyncMock()), 3)
+		finally:
+			middleware.executor.shutdown(wait=True)
+		return
+
+	async def test_unrelated_disconnect_error_after_client_disconnect_propagates(self) -> None:
+		from RedStar.Adapter.Implements.Uvicorn.HTTP import Middleware
+
+		middleware = Middleware(Application(), 1, 2)
+		application = FailingApplication()
+		scope = {
+			'type': 'http',
+			'http_version': '1.1',
+			'method': 'GET',
+			'path': '/',
+			'query_string': b'',
+			'headers': [],
+			'server': ('localhost', 80),
+			'client': ('localhost', 1234),
+		}
+		try:
+			with patch.object(middleware, 'application', application):
+				with self.assertRaisesRegex(ClientDisconnected, 'unrelated application failure'):
+					await wait_for(middleware(scope, application.receive, AsyncMock()), 3)
+		finally:
+			middleware.executor.shutdown(wait=True)
+		return
+
+	async def test_request_reader_disconnect_is_handled(self) -> None:
+		from RedStar.Adapter.Implements.Uvicorn.HTTP import Middleware
+
+		middleware = Middleware(Application(), 1, 2)
+		application = ReadingApplication()
+		scope = {
+			'type': 'http',
+			'http_version': '1.1',
+			'method': 'GET',
+			'path': '/',
+			'query_string': b'',
+			'headers': [],
+			'server': ('localhost', 80),
+			'client': ('localhost', 1234),
+		}
+		try:
+			with patch.object(middleware, 'application', application):
+				with self.assertLogs('Server.Uvicorn', level='WARNING'):
+					await wait_for(middleware(scope, application.receive, AsyncMock()), 3)
+		finally:
+			middleware.executor.shutdown(wait=True)
+		return
+
+	async def test_unrelated_worker_exception_propagates(self) -> None:
+		from RedStar.Adapter.Implements.Uvicorn.HTTP import Middleware
+
+		scope = {
+			'type': 'http',
+			'http_version': '1.1',
+			'method': 'GET',
+			'path': '/',
+			'query_string': b'',
+			'headers': [],
+			'server': ('localhost', 80),
+			'client': ('localhost', 1234),
+		}
+		for error in (
+			RuntimeError('worker failure'),
+			ClientDisconnected('without disconnect event'),
+		):
+			with self.subTest(error=type(error).__name__):
+				middleware = Middleware(Application(), 1, 2)
+				events = Queue()
+				await events.put({'type': 'http.request', 'body': b'', 'more_body': False})
+				try:
+					with patch.object(middleware, 'application', side_effect=error):
+						with self.assertRaisesRegex(type(error), str(error)):
+							await wait_for(middleware(scope, events.get, AsyncMock()), 3)
+				finally:
+					middleware.executor.shutdown(wait=True)
+		return
 
 
 @skipUnless(find_spec('a2wsgi') is not None, 'a2wsgi 필요')
