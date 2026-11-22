@@ -2,6 +2,7 @@ from io import BytesIO
 from sys import modules
 from types import ModuleType
 from unittest import TestCase
+from unittest.mock import Mock
 
 from RedStar import (
 	Application,
@@ -21,6 +22,8 @@ from RedStar.IO.Readers import (
 	TextContentReader,
 )
 from RedStar.IO.RequestReader import ClientDisconnected
+from RedStar.Route import Route
+from RedStar.Router import Router
 
 
 def request(
@@ -134,6 +137,78 @@ class CoreTests(TestCase):
 		self.assertEqual(
 			app(request(uri='/sample/fixed')).body,
 			b'static',
+		)
+		return
+
+	def test_router_matches_only_static_and_variable_route_candidates(self):
+		router = Router()
+		static = Route('GET', '/hello', RequestRunner)
+		static.match = Mock(wraps=static.match)
+		router.add(static)
+		variable_routes: list[Route] = []
+		for index in range(1000):
+			route = Route(
+				'GET',
+				'/r{}/:id'.format(index),
+				RequestRunner,
+			)
+			route.match = Mock(wraps=route.match)
+			router.add(route)
+			variable_routes.append(route)
+
+		self.assertEqual(
+			router.matches('/hello'),
+			{'GET': (static, {})},
+		)
+		self.assertEqual(
+			static.match.call_count + sum(route.match.call_count for route in variable_routes),
+			0,
+		)
+		matches = router.matches('/r999/42')
+		self.assertIs(matches['GET'][0], variable_routes[-1])
+		self.assertEqual(matches['GET'][1], {'id': '42'})
+		self.assertEqual(static.match.call_count, 0)
+		self.assertEqual(
+			sum(route.match.call_count for route in variable_routes),
+			1,
+		)
+		return
+
+	def test_router_matches_preserve_priority_methods_and_inline_parameters(self):
+		router = Router()
+		lower_priority = Route(
+			'GET',
+			'/:first/:second',
+			RequestRunner,
+		)
+		higher_priority = Route(
+			'GET',
+			'/fixed/:id',
+			RequestRunner,
+		)
+		other_method = Route(
+			'POST',
+			'/fixed/:item',
+			RequestRunner,
+		)
+		inline_parameter = Route(
+			'PATCH',
+			'/files/:name.txt',
+			RequestRunner,
+		)
+		router.add(lower_priority)
+		router.add(higher_priority)
+		router.add(other_method)
+		router.add(inline_parameter)
+
+		matches = router.matches('/fixed/value')
+		self.assertIs(matches['GET'][0], higher_priority)
+		self.assertEqual(matches['GET'][1], {'id': 'value'})
+		self.assertIs(matches['POST'][0], other_method)
+		self.assertEqual(matches['POST'][1], {'item': 'value'})
+		self.assertEqual(
+			router.matches('/files/readme.txt')['PATCH'][1],
+			{'name': 'readme'},
 		)
 		return
 
@@ -264,10 +339,14 @@ class CoreTests(TestCase):
 			second(request()).body,
 			b'loaded',
 		)
-		first.router.routes.clear()
+		first.router.replace(())
 		self.assertEqual(
 			len(second.router.routes),
 			1,
+		)
+		self.assertEqual(
+			first.router.matches('/sample'),
+			{},
 		)
 		return
 
