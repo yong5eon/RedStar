@@ -466,6 +466,8 @@ run_server(adapter, int(port), directory, worker)
 				finally:
 					client.close()
 			with self.subTest(feature='disconnect'):
+				log = root / 'server.log'
+				log_offset = len(log.read_text(errors='replace'))
 				connection = HTTPConnection('127.0.0.1', port, timeout=3)
 				connection.request('GET', '/disconnect')
 				response = connection.getresponse()
@@ -473,10 +475,20 @@ run_server(adapter, int(port), directory, worker)
 				response.close()
 				connection.close()
 				deadline = monotonic() + 5
-				while ':error:/disconnect:' not in (root / 'events').read_text():
+				expected = ':error:/disconnect:ClientDisconnected' if adapter == 'Uvicorn' else ':error:/disconnect:'
+				while expected not in (root / 'events').read_text():
 					if monotonic() >= deadline:
 						self.fail('클라이언트 연결 종료 뒤 SSE 핸들러가 정리되지 않았습니다')
 					sleep(0.02)
+				if adapter == 'Uvicorn':
+					while True:
+						output = log.read_text(errors='replace')[log_offset:]
+						if 'ASGI request stopped after client disconnect' in output:
+							break
+						if monotonic() >= deadline:
+							self.fail('Uvicorn did not finish the disconnected request')
+						sleep(0.02)
+					self.assertNotIn('Exception in ASGI application', output)
 		return
 
 	def test_python(self):
