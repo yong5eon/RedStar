@@ -1,5 +1,6 @@
 from io import BytesIO
 from unittest import TestCase
+from unittest.mock import patch
 
 from RedStar import (
 	Application,
@@ -336,7 +337,9 @@ class FeatureTests(TestCase):
 		self.assertEqual(response.header('Access-Control-Allow-Origin'), 'https://client')
 		return
 
-	def test_cors_actual_preflight_options_and_app_isolation(self):
+	def test_cors_actual_preflight_options_and_app_isolation(self) -> None:
+		instances: list[object] = []
+
 		class Secured(
 			RequestRunner,
 			method='POST',
@@ -352,41 +355,72 @@ class FeatureTests(TestCase):
 			headers=Headers({'X-ID': IsString()}),
 			body=Body(JavaScriptObjectNotationContentReader()),
 		):
+			def __init__(self) -> None:
+				instances.append(self)
+				return
+
 			def run(
 				self,
-				req,
-			):
+				req: Request,
+			) -> Response:
 				return Response(headers={'X-Result': 'yes'})
 
 		app = Application()
 		app.add(Secured)
-		response = app(request(
-			method='POST',
-			headers={
-				'Origin': 'https://other',
-				'Authorization': 'Bearer 1',
-				'X-ID': 'sample',
-				'Content-Type': 'application/json',
-			},
-			body=b'{}',
-		))
-		assert isinstance(response, Response)
-		self.assertEqual(response.header('Access-Control-Allow-Origin'), 'https://other')
-		self.assertEqual(response.header('Access-Control-Allow-Credentials'), 'true')
-		exposed = response.header('Access-Control-Expose-Headers')
-		assert exposed is not None
-		self.assertIn('X-Result', exposed)
-		response = app(request(
-			method='OPTIONS',
-			headers={
-				'Origin': 'https://allowed',
-				'Access-Control-Request-Method': 'POST',
-				'Access-Control-Request-Headers': 'authorization, content-type, x-id',
-			},
-		))
-		assert isinstance(response, Response)
-		self.assertEqual(response.status, 204)
-		self.assertEqual(response.header('Access-Control-Allow-Methods'), 'POST')
+		route = app.router.routes[0]
+		run_request = route.run_request
+		cross_origin_resource_sharing = run_request.cross_origin_resource_sharing
+		with patch.object(
+			run_request,
+			'run',
+			wraps=run_request.run,
+		) as run:
+			with patch.object(
+				cross_origin_resource_sharing,
+				'apply_to_response',
+				wraps=cross_origin_resource_sharing.apply_to_response,
+			) as apply_to_response:
+				response = app(request(
+					method='POST',
+					headers={
+						'Origin': 'https://other',
+						'Authorization': 'Bearer 1',
+						'X-ID': 'sample',
+						'Content-Type': 'application/json',
+					},
+					body=b'{}',
+				))
+				assert isinstance(response, Response)
+				self.assertEqual(response.header('Access-Control-Allow-Origin'), 'https://other')
+				self.assertEqual(response.header('Access-Control-Allow-Credentials'), 'true')
+				exposed = response.header('Access-Control-Expose-Headers')
+				assert exposed is not None
+				self.assertIn('X-Result', exposed)
+				preflight = app(request(
+					method='OPTIONS',
+					headers={
+						'Origin': 'https://allowed',
+						'Access-Control-Request-Method': 'POST',
+						'Access-Control-Request-Headers': 'authorization, content-type, x-id',
+					},
+				))
+				assert isinstance(preflight, Response)
+				self.assertEqual(preflight.status, 204)
+				self.assertEqual(preflight.header('Access-Control-Allow-Methods'), 'POST')
+				app(request(
+					method='POST',
+					headers={
+						'Origin': 'https://other',
+						'Authorization': 'Bearer 1',
+						'X-ID': 'sample',
+						'Content-Type': 'application/json',
+					},
+					body=b'{}',
+				))
+				self.assertEqual(run.call_count, 2)
+				self.assertEqual(apply_to_response.call_count, 3)
+		self.assertEqual(len(instances), 2)
+		self.assertIsNot(instances[0], instances[1])
 		vary = response.header('Vary')
 		assert vary is not None
 		self.assertIn('Origin', vary)

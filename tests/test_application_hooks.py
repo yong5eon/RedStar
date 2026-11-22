@@ -75,6 +75,40 @@ def request(uri='/hook', writer=None):
 
 
 class ApplicationHookTests(TestCase):
+	def test_request_dispatch_does_not_acquire_lifecycle_lock(self) -> None:
+		class Handler(
+			RequestRunner,
+			method='GET',
+			url='/hook',
+		):
+			def run(
+				self,
+				req: Request,
+			) -> Response:
+				return Response()
+
+		class RejectLock:
+			def __enter__(self) -> None:
+				raise AssertionError('Request dispatch must not acquire lifecycle_lock')
+
+			def __exit__(
+				self,
+				exception_type: object,
+				exception: object,
+				traceback: object,
+			) -> bool:
+				return False
+
+		app = Application()
+		app.add(Handler)
+		snapshot = app.request_hook_snapshot
+		setattr(app, 'lifecycle_lock', RejectLock())
+		response = app(request())
+		assert response is not None
+		self.assertEqual(response.status, 200)
+		self.assertIs(app.request_hook_snapshot, snapshot)
+		return
+
 	def test_hook_inputs_are_validated_and_snapshotted(self):
 		class Startup(ApplicationStartup):
 			def __call__(self):

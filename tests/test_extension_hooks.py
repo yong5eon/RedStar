@@ -1,7 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from threading import Event
-from typing import Sequence
+from typing import (
+	Optional,
+	Sequence,
+)
 from unittest import TestCase
 
 from RedStar import (
@@ -19,6 +22,7 @@ from RedStar import (
 	ExtensionRequestResponse,
 	ExtensionStartup,
 	Request,
+	RequestHookRegistration,
 	RequestRunner,
 	Response,
 	ResponseWriter,
@@ -801,6 +805,93 @@ class RequestHookRegistrationTests(TestCase):
 		assert response is not None
 		self.assertEqual(response.status, 200)
 		self.assertEqual(events, ['dynamic-request', 'dynamic-response'])
+		return
+
+	def test_requests_wait_for_extension_startup_and_reentrant_request_uses_current_hooks(self) -> None:
+		events = []
+		started = Event()
+		release = Event()
+		cleanup_started = Event()
+		cleanup_release = Event()
+		attempted = Event()
+
+		class Track(ApplicationRequest):
+			def __call__(
+				self,
+				req: Request,
+			) -> Request:
+				events.append('request')
+				return req
+
+		class Blocking(Echo):
+			def __init__(self) -> None:
+				self.application: Optional[Application] = None
+				self.registration: Optional[RequestHookRegistration] = None
+				super().__init__()
+				return
+
+			def startup(
+				self,
+				application: Application,
+			) -> None:
+				self.application = application
+				self.registration = application.add_request_hooks(on_request=Track())
+				response = application(request('/general'))
+				assert isinstance(response, Response)
+				started.set()
+				if not release.wait(timeout=5):
+					raise TimeoutError('Extension startup was not released')
+				super().startup(application)
+				return
+
+			def cleanup(self) -> None:
+				assert self.application is not None
+				assert self.registration is not None
+				self.application.remove_request_hooks(self.registration)
+				cleanup_started.set()
+				if not cleanup_release.wait(timeout=5):
+					raise TimeoutError('Extension cleanup was not released')
+				super().cleanup()
+				return
+
+		app = Application(exts=(Blocking(),))
+		app.add(General)
+		self.addCleanup(app.stop)
+
+		def dispatch() -> Optional[Response]:
+			attempted.set()
+			return app(request('/general'))
+
+		with ThreadPoolExecutor(max_workers=2) as executor:
+			start_future = executor.submit(app.start)
+			try:
+				self.assertTrue(started.wait(timeout=5))
+				self.assertEqual(events, ['request'])
+				request_future = executor.submit(dispatch)
+				self.assertTrue(attempted.wait(timeout=5))
+				with self.assertRaises(TimeoutError):
+					request_future.result(timeout=0.1)
+			finally:
+				release.set()
+			start_future.result(timeout=5)
+			response = request_future.result(timeout=5)
+			self.assertTrue(isinstance(response, Response))
+			self.assertEqual(events, ['request', 'request'])
+			attempted.clear()
+			stop_future = executor.submit(app.stop)
+			self.assertTrue(cleanup_started.wait(timeout=5))
+			stopping_request_future = executor.submit(dispatch)
+			try:
+				self.assertTrue(attempted.wait(timeout=5))
+				with self.assertRaises(TimeoutError):
+					stopping_request_future.result(timeout=0.1)
+			finally:
+				cleanup_release.set()
+			stop_future.result(timeout=5)
+			response = stopping_request_future.result(timeout=5)
+
+		assert isinstance(response, Response)
+		self.assertEqual(events, ['request', 'request'])
 		return
 
 	def test_registration_and_removal_are_lifecycle_scoped(self):
