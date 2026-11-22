@@ -2,7 +2,6 @@ from ..Error import ClientError
 from ..Request import Request
 from ..Response import Response
 from ..Router import Router
-from ..CrossOriginResourceSharing import CrossOriginResourceSharing
 
 __all__ = (
 	'RunOptions',
@@ -43,8 +42,9 @@ class RunOptions:
 				'Preflight method not allowed',
 				status=405,
 			)
-		properties = matches[method][0].object.properties
-		cross_origin_resource_sharing = CrossOriginResourceSharing(properties)
+		cross_origin_resource_sharing = matches[method][0].cross_origin_resource_sharing
+		if cross_origin_resource_sharing is None:
+			raise RuntimeError('CORS policy was not prepared for this route')
 		if request.header('Origin') is None or not cross_origin_resource_sharing.has_origin_policy():
 			raise ClientError(
 				'No CORS policy is configured for this preflight request',

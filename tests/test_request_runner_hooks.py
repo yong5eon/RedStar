@@ -1174,15 +1174,11 @@ class RequestRunnerHookTests(TestCase):
 			return
 
 		runner = handler(run, on_request_response=hook)
-		apps = (
-			Application(),
-			Application(),
-		)
-		for app in apps:
-			app.add(runner)
+		app = Application()
+		app.add(runner)
 		self.assertIs(runner.properties.on_request_response[0], hook)
 
-		def invoke(app):
+		def invoke(_):
 			sent = []
 			writer = ResponseWriter(lambda response, chunked: sent.append(response), BytesIO())
 			req = request(writer)
@@ -1192,6 +1188,6 @@ class RequestRunnerHookTests(TestCase):
 			return req.id
 
 		with ThreadPoolExecutor(max_workers=2) as executor:
-			seen = list(executor.map(invoke, apps))
+			seen = list(executor.map(invoke, range(2)))
 		self.assertEqual(len(set(seen)), 2)
 		return

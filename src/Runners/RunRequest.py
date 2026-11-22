@@ -4,7 +4,10 @@ from typing import (
 	Type,
 )
 
-from ..RequestRunner import RequestRunner
+from ..RequestRunner import (
+	RequestProperties,
+	RequestRunner,
+)
 from ..Request import Request
 from ..Response import (
 	Response,
@@ -26,70 +29,78 @@ class RunRequest:
 		self,
 		obj: Type[RequestRunner],
 	):
-		self.object = obj
-		self.cross_origin_resource_sharing = CrossOriginResourceSharing(obj.properties)
+		self.object: Type[RequestRunner] = obj
+		self.properties: RequestProperties = obj.properties
+		self.cross_origin_resource_sharing: CrossOriginResourceSharing = CrossOriginResourceSharing(
+			self.properties,
+		)
 		return
 
-	def run(
+	def apply_response_hooks(
 		self,
 		request: Request,
-	) -> Optional[Response]:
-		properties = self.object.properties
-		request_id = request.id
-		phase = 'runner.cors_origin'
-
-		def apply_response_hooks(response: Response) -> Response:
-			for index, hook in enumerate(properties.on_request_response):
-				previous = response
-				previous_body = previous.body
-				phase = 'runner.response_hook.' + str(index)
-				self.logger.debug(
-					'Response hook starting: request_id=%s phase=%s hook=%s',
-					request.id,
-					phase,
-					type(hook).__qualname__,
+		response: Response,
+	) -> Response:
+		"""Apply configured response hooks and CORS policy to a response."""
+		for index, hook in enumerate(self.properties.on_request_response):
+			previous = response
+			previous_body = previous.body
+			phase = 'runner.response_hook.' + str(index)
+			self.logger.debug(
+				'Response hook starting: request_id=%s phase=%s hook=%s',
+				request.id,
+				phase,
+				type(hook).__qualname__,
+			)
+			try:
+				result = hook(request, previous)
+				if not isinstance(result, Response):
+					raise TypeError('RequestRunnerRequestResponse hooks must return a Response')
+			except Exception:
+				close_bodies(
+					previous_body,
+					previous.body,
+					preserve_error=True,
 				)
-				try:
-					result = hook(request, previous)
-					if not isinstance(result, Response):
-						raise TypeError('RequestRunnerRequestResponse hooks must return a Response')
-				except Exception:
-					close_bodies(
+				raise
+			response = result
+			self.logger.debug('Response hook completed: request_id=%s phase=%s', request.id, phase)
+			try:
+				close_bodies(*(
+					body for body in (
 						previous_body,
 						previous.body,
-						preserve_error=True,
 					)
-					raise
-				response = result
-				self.logger.debug('Response hook completed: request_id=%s phase=%s', request.id, phase)
-				try:
-					close_bodies(*(
-						body for body in (
-							previous_body,
-							previous.body,
-						)
-						if body is not response.body
-					))
-				except Exception:
-					close_bodies(
-						response.body,
-						preserve_error=True,
-					)
-					raise
-			try:
-				self.logger.debug('CORS response starting: request_id=%s', request.id)
-				response = self.cross_origin_resource_sharing.apply_to_response(
-					request,
-					response,
-				)
-				self.logger.debug('CORS response completed: request_id=%s', request.id)
-				return response
+					if body is not response.body
+				))
 			except Exception:
 				close_bodies(
 					response.body,
 					preserve_error=True,
 				)
 				raise
+		try:
+			self.logger.debug('CORS response starting: request_id=%s', request.id)
+			response = self.cross_origin_resource_sharing.apply_to_response(
+				request,
+				response,
+			)
+			self.logger.debug('CORS response completed: request_id=%s', request.id)
+			return response
+		except Exception:
+			close_bodies(
+				response.body,
+				preserve_error=True,
+			)
+			raise
+
+	def run(
+		self,
+		request: Request,
+	) -> Optional[Response]:
+		properties = self.properties
+		request_id = request.id
+		phase = 'runner.cors_origin'
 
 		writer = None
 		try:
@@ -145,7 +156,9 @@ class RunRequest:
 				request = result
 			writer = request.response_writer
 			if writer is not None:
-				writer.on_request_response = apply_response_hooks
+				writer.on_request_response = None
+				writer.on_request_response_with_request = self.apply_response_hooks
+				writer.response_hook_request = request
 			phase = 'runner.run'
 			self.logger.debug('Handler running: request_id=%s handler=%s.%s', request.id, self.object.__module__, self.object.__qualname__)
 			response = runner.run(request)
@@ -167,7 +180,7 @@ class RunRequest:
 			if not isinstance(response, Response):
 				raise TypeError('run must return a Response or start a response through the writer')
 			phase = 'runner.response_hooks'
-			response = apply_response_hooks(response)
+			response = self.apply_response_hooks(request, response)
 			self.logger.debug(
 				'Runner response provided: request_id=%s mode=returned status=%s',
 				request.id,
@@ -206,3 +219,5 @@ class RunRequest:
 		finally:
 			if writer is not None:
 				writer.on_request_response = None
+				writer.on_request_response_with_request = None
+				writer.response_hook_request = None

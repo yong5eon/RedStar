@@ -2,6 +2,7 @@ from typing import (
 	Callable,
 	Optional,
 	Protocol,
+	TYPE_CHECKING,
 )
 
 from ..Response import (
@@ -9,6 +10,9 @@ from ..Response import (
 	close_bodies,
 )
 from ..Error import ClientError
+
+if TYPE_CHECKING:
+	from ..Request import Request
 
 __all__ = (
 	'BinaryWriter',
@@ -49,7 +53,29 @@ class ResponseWriter:
 		self.chunked = False
 		self.suppress_body = False
 		self.on_request_response: Optional[Callable[[Response], Response]] = None
+		self.on_request_response_with_request: Optional[
+			Callable[[Request, Response], Response]
+		] = None
+		self.response_hook_request: Optional[Request] = None
 		return
+
+	def apply_response_hook(
+		self,
+		response: Response,
+	) -> Response:
+		"""Apply the configured request-aware or legacy response callback."""
+		if self.on_request_response_with_request is not None:
+			if self.response_hook_request is None:
+				raise RuntimeError('A request is required for the request-aware response hook')
+			response = self.on_request_response_with_request(
+				self.response_hook_request,
+				response,
+			)
+		elif self.on_request_response is not None:
+			response = self.on_request_response(response)
+		if not isinstance(response, Response):
+			raise TypeError('Response hooks must return a Response')
+		return response
 
 	def start(
 		self,
@@ -85,10 +111,7 @@ class ResponseWriter:
 		response: Response,
 	) -> Response:
 		"""Call the injected response hook and validate a response for direct output."""
-		if self.on_request_response is not None:
-			response = self.on_request_response(response)
-		if not isinstance(response, Response):
-			raise TypeError('Response hooks must return a Response')
+		response = self.apply_response_hook(response)
 		try:
 			if not isinstance(response.body, bytes) or response.body:
 				raise ValueError('Response hooks must not set a body for direct output')
@@ -212,9 +235,9 @@ class ResponseWriter:
 		"""Send returned bytes or iterable responses through the same transport boundary."""
 		if self.started:
 			raise RuntimeError('Cannot send a response that has already started')
-		if not filtered and self.on_request_response is not None:
-			response = self.on_request_response(response)
-		if not isinstance(response, Response):
+		if not filtered:
+			response = self.apply_response_hook(response)
+		elif not isinstance(response, Response):
 			raise TypeError('Response hooks must return a Response')
 		if isinstance(response.body, bytes) and response.status not in (
 			204,
