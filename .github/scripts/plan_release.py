@@ -8,7 +8,7 @@ from typing import Optional
 QUERY = (
 	'query($owner:String!,$name:String!,$number:Int!){'
 	'repository(owner:$owner,name:$name){pullRequest(number:$number){'
-	'closingIssuesReferences(first:100){nodes{number issueType{name} labels(first:100){nodes{name}}}}'
+	'closingIssuesReferences(first:100){nodes{number issueType{name}}}'
 	'}}}'
 )
 MINOR_NAMES = {'feature'}
@@ -29,7 +29,9 @@ def parse_release(tag: str, series: str) -> Optional[tuple]:
 
 
 def classify(names: list[str]) -> str:
-	"""Return 'minor', 'patch' or 'none' for issue type and label names; feature wins over bug and fix."""
+	"""
+	Return 'minor', 'patch' or 'none' for issue type names; feature wins over bug and fix.
+	"""
 	lowered = {name.lower() for name in names}
 	if lowered & MINOR_NAMES:
 		return 'minor'
@@ -59,7 +61,9 @@ def plan(series: str, tags: list[str], bump: str) -> tuple:
 
 
 def read_names(repository: str, sha: str) -> list[str]:
-	"""Collect issue type and label names of the issues closed by the PR merged as the commit."""
+	"""
+	Collect issue type names of the issues closed by the PR merged as the commit.
+	"""
 	pages = loads(check_output([
 		'gh', 'api', '--paginate', '--slurp',
 		'repos/{}/commits/{}/pulls?per_page=100'.format(repository, sha),
@@ -85,7 +89,6 @@ def read_names(repository: str, sha: str) -> list[str]:
 	for issue in result['data']['repository']['pullRequest']['closingIssuesReferences']['nodes']:
 		if issue['issueType'] is not None:
 			names.append(issue['issueType']['name'])
-		names.extend(label['name'] for label in issue['labels']['nodes'])
 	return names
 
 

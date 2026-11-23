@@ -10,13 +10,13 @@ from plan_release import (
 
 
 class PlanReleaseTests(TestCase):
-	def test_feature_or_bug_in_type_or_label_selects_bump(self) -> None:
+	def test_issue_type_selects_bump_case_insensitively(self) -> None:
 		for names, bump in (
-			(['Task', 'feature'], 'minor'),
 			(['Feature'], 'minor'),
-			(['bug'], 'patch'),
-			(['Task', 'fix'], 'patch'),
-			(['feature', 'bug'], 'minor'),
+			(['FEATURE'], 'minor'),
+			(['BUG'], 'patch'),
+			(['Fix'], 'patch'),
+			(['feature', 'bug', 'fix'], 'minor'),
 			(['task', 'documentation'], 'none'),
 			([], 'none'),
 		):
@@ -48,21 +48,33 @@ class PlanReleaseTests(TestCase):
 			self.assertEqual(read_names('example/project', 'sha'), [])
 		return
 
-	def test_merged_pr_collects_issue_types_and_labels(self) -> None:
+	def test_merged_pr_ignores_labels_when_classifying_issues(self) -> None:
 		pull = {
 			'number': 7,
 			'merged_at': '2026-01-01T00:00:00Z',
 			'merge_commit_sha': 'sha',
 			'base': {'ref': 'master', 'repo': {'full_name': 'example/project'}},
 		}
-		nodes = [
-			{'number': 1, 'issueType': {'name': 'Task'}, 'labels': {'nodes': [{'name': 'feature'}]}},
-			{'number': 2, 'issueType': None, 'labels': {'nodes': [{'name': 'bug'}]}},
-		]
-		graphql = {'data': {'repository': {'pullRequest': {'closingIssuesReferences': {'nodes': nodes}}}}}
-		with patch('plan_release.check_output', side_effect=[
-			dumps([[pull]]).encode(),
-			dumps(graphql).encode(),
-		]):
-			self.assertEqual(read_names('example/project', 'sha'), ['Task', 'feature', 'bug'])
+		for nodes, expected_names, bump in (
+			([
+				{'issueType': {'name': 'Task'}, 'labels': {'nodes': [{'name': 'feature'}]}},
+				{'issueType': None, 'labels': {'nodes': [{'name': 'bug'}, {'name': 'fix'}]}},
+			], ['Task'], 'none'),
+			([
+				{'issueType': {'name': 'Bug'}, 'labels': {'nodes': [{'name': 'feature'}]}},
+				{'issueType': {'name': 'FEATURE'}, 'labels': {'nodes': [{'name': 'fix'}]}},
+			], ['Bug', 'FEATURE'], 'minor'),
+			([
+				{'issueType': {'name': 'fIx'}},
+				{'issueType': None},
+			], ['fIx'], 'patch'),
+		):
+			graphql = {'data': {'repository': {'pullRequest': {'closingIssuesReferences': {'nodes': nodes}}}}}
+			with self.subTest(nodes=nodes), patch('plan_release.check_output', side_effect=[
+				dumps([[pull]]).encode(),
+				dumps(graphql).encode(),
+			]):
+				names: list[str] = read_names('example/project', 'sha')
+				self.assertEqual(names, expected_names)
+				self.assertEqual(classify(names), bump)
 		return
