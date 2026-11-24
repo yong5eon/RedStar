@@ -306,6 +306,52 @@ class LoggingTests(TestCase):
 			self.assertNotIn(private, messages)
 		return
 
+	def test_validated_request_id_is_used_in_error_logs(self):
+		class Failure(
+			RequestRunner,
+			method='GET',
+			url='/failure',
+		):
+			def run(
+				self,
+				value,
+			):
+				raise RuntimeError('request failed')
+
+		app = Application()
+		app.add(Failure)
+		invalid_request_id = 'bad\r\nrequest_id=forged'
+		for header, expected_id in (
+			('proxy-40', 'proxy-40'),
+			(invalid_request_id, None),
+		):
+			with self.subTest(header=header):
+				value = Request(
+					'127.0.0.1',
+					1,
+					'GET',
+					'/failure',
+					headers={'X-Request-ID': header},
+					writer=ResponseWriter(Mock(), BytesIO()),
+				)
+				with self.assertLogs(level=DEBUG) as logs:
+					transmit(app, value)
+				messages = [
+					record.getMessage()
+					for record in logs.records
+					if 'request_id=' in record.getMessage()
+				]
+				self.assertGreaterEqual(len(messages), 3)
+				self.assertTrue(all(
+					'request_id=' + (expected_id if expected_id is not None else value.id)
+					in message
+					for message in messages
+				))
+				if expected_id is None:
+					self.assertRegex(value.id, r'^[0-9a-f]{32}$')
+					self.assertNotIn(invalid_request_id, '\n'.join(messages))
+		return
+
 	def test_hook_order_and_request_replacement_are_observable(self):
 		events = []
 
@@ -370,8 +416,11 @@ class LoggingTests(TestCase):
 		with self.assertLogs(level=DEBUG) as logs:
 			transmit(app, value)
 		messages = '\n'.join(logs.output)
-		self.assertIn('Request replaced: previous_request_id=' + value.id, messages)
-		self.assertIn('request_id=' + replacement.replacement.id, messages)
+		self.assertEqual(replacement.replacement.id, value.id)
+		self.assertIn(
+			'Request replaced: previous_request_id=' + value.id + ' request_id=' + value.id,
+			messages,
+		)
 		self.assertEqual(events, [
 			'runner.request_hook.0',
 			'runner.request_hook.1',

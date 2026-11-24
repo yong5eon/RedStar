@@ -230,7 +230,11 @@ CORS는 브라우저가 다른 출처의 응답을 읽을 수 있는지 제어�
 
 ## 요청 객체
 
-요청에는 고유한 `request.id`, method, URI, path, 파라미터, 쿼리, 헤더, body, session이 담깁니다. `request.writer`는 서버가 응답 writer를 붙였을 때 사용할 수 있으며 연결이 없는 호출에서는 `RuntimeError`를 발생시킵니다.
+요청에는 `request.id`, method, URI, path, 파라미터, 쿼리, 헤더, body, session이 담깁니다. `request.writer`는 서버가 응답 writer를 붙였을 때 사용할 수 있으며 연결이 없는 호출에서는 `RuntimeError`를 발생시킵니다.
+
+`X-Request-ID` 값이 ASCII `[A-Za-z0-9@_-]{1,128}` 형식에 맞으면 `request.id`로 사용합니다. 헤더가 없거나 형식에 맞지 않으면 새 UUID를 생성합니다. 이 헤더는 외부 입력이므로 로그에서 요청을 연결하는 용도로만 사용하고 인증이나 권한 판단에 사용하지 마세요. 요청 훅이 새 `Request` 객체를 반환해도 최초 요청 ID가 유지됩니다.
+
+응답에는 `X-Request-ID`가 자동으로 추가되지 않습니다. 응답에 요청 ID를 포함하려면 응답이나 응답 훅에서 헤더를 명시적으로 설정하세요.
 
 ## 일반 응답 반환
 

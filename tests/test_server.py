@@ -164,6 +164,38 @@ class ServerTests(TestCase):
 				connection.close()
 		return
 
+	def test_request_id_from_http_header_is_used_without_response_echo(self):
+		class Sample(
+			RequestRunner,
+			method='GET',
+			url='/',
+		):
+			def run(
+				self,
+				request,
+			):
+				return Response(body=request.id.encode('ascii'))
+
+		app = Application()
+		app.add(Sample)
+		with running(app) as address:
+			connection = HTTPConnection(
+				*address,
+				timeout=3,
+			)
+			try:
+				connection.request(
+					'GET',
+					'/',
+					headers={'X-Request-ID': 'proxy-42'},
+				)
+				response = connection.getresponse()
+				self.assertEqual(response.read(), b'proxy-42')
+				self.assertIsNone(response.getheader('X-Request-ID'))
+			finally:
+				connection.close()
+		return
+
 	def test_post_put_process_before_upload_finishes(self):
 		for method in (
 			'POST',

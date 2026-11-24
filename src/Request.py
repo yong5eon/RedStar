@@ -20,6 +20,8 @@ __all__ = (
 	'Request',
 )
 
+_REQUEST_ID_PATTERN = r'[A-Za-z0-9@_-]{1,128}'
+
 
 class Request:
 	"""Represent an HTTP request independently of server environment dictionaries."""
@@ -35,7 +37,6 @@ class Request:
 		reader: Optional[RequestReader] = None,
 		writer: Optional[ResponseWriter] = None,
 	):
-		self.id = uuid4().hex
 		self.address = address
 		self.port = port
 		self.method = method
@@ -54,6 +55,16 @@ class Request:
 		self.props = Message()
 		for key, value in headers.items() if headers is not None else ():
 			self.props[key] = value
+		request_id = self.header('X-Request-ID')
+		self.id = (
+			request_id
+			if (
+				request_id is not None
+				and isinstance(request_id, str)
+				and fullmatch(_REQUEST_ID_PATTERN, request_id) is not None
+			)
+			else uuid4().hex
+		)
 		self.reader = reader if reader is not None else RequestReader(BytesIO())
 		self.response_writer = writer
 		self.body: Any = None

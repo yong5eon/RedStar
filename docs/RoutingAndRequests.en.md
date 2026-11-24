@@ -230,7 +230,11 @@ CORS controls whether a browser may read a cross-origin response; it does not pr
 
 ## Request object
 
-The request contains a unique `request.id`, method, URI, path, parameters, query values, headers, body, and session. `request.writer` is available when the server has attached a response writer; accessing it without one raises `RuntimeError`.
+The request contains `request.id`, method, URI, path, parameters, query values, headers, body, and session. `request.writer` is available when the server has attached a response writer; accessing it without one raises `RuntimeError`.
+
+If `X-Request-ID` matches the ASCII format `[A-Za-z0-9@_-]{1,128}`, RedStar uses it as `request.id`. If the header is absent or invalid, RedStar generates a UUID. Because this header is external input, use it only to correlate requests in logs, not for authentication or authorization. The original request ID is preserved when a request hook returns a new `Request` object.
+
+RedStar does not automatically add `X-Request-ID` to responses. To include the request ID in a response, set the header explicitly on the response or in a response hook.
 
 ## Return an ordinary response
 

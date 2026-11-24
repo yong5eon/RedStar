@@ -433,6 +433,7 @@ class ExtensionHookTests(TestCase):
 
 	def test_request_response_transforms_and_error_chaining(self):
 		events = []
+		replacements = []
 
 		class RequestHook(ExtensionRequest):
 			def __call__(
@@ -440,7 +441,9 @@ class ExtensionHookTests(TestCase):
 				req,
 			):
 				events.append('request')
-				return request('/changed')
+				replacement = request('/changed')
+				replacements.append(replacement)
+				return replacement
 
 		class ResponseHook(ExtensionRequestResponse):
 			def __call__(
@@ -461,8 +464,10 @@ class ExtensionHookTests(TestCase):
 		assert response is not None
 		self.assertEqual(response.body, b'changed')
 		self.assertEqual(events, ['request', 'response:/changed'])
+		self.assertEqual(replacements[0].id, value.id)
 		self.assertTrue(any(
-			'Request replaced: previous_request_id=' + value.id in record.getMessage()
+			'Request replaced: previous_request_id=' + value.id + ' request_id=' + value.id
+			in record.getMessage()
 			for record in logs.records
 		))
 		self.assertFalse(any(

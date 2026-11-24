@@ -298,7 +298,7 @@ class RequestRunnerHookTests(TestCase):
 		original = request()
 		output = BytesIO()
 		writer = ResponseWriter(
-			lambda response, chunked: seen.append(response.header('X-Request')),
+			lambda response, chunked: seen.append(response.header('X-Request-ID')),
 			output,
 		)
 		replacement = request(writer)
@@ -316,7 +316,7 @@ class RequestRunnerHookTests(TestCase):
 			response,
 		):
 			self.assertIs(req, replacement)
-			response.header('X-Request', req.id)
+			response.header('X-Request-ID', req.id)
 			return response
 
 		runner = handler(
@@ -328,9 +328,10 @@ class RequestRunnerHookTests(TestCase):
 			on_request_response=ResponseHook(after),
 		)
 		self.assertIsNone(RunRequest(runner).run(original))
+		self.assertEqual(replacement.id, original.id)
 		self.assertEqual(seen, [
 			replacement,
-			replacement.id,
+			original.id,
 		])
 		self.assertIsNone(writer.on_request_response)
 		return

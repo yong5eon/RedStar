@@ -46,6 +46,33 @@ def request(
 
 
 class CoreTests(TestCase):
+	def test_request_id_uses_valid_header_or_generates_uuid(self):
+		for value in (
+			'proxy-42',
+			'apache@42_test',
+			'a' * 128,
+		):
+			with self.subTest(value=value):
+				self.assertEqual(
+					request(headers={'X-Request-ID': value}).id,
+					value,
+				)
+		for headers in (
+			None,
+			{'X-Request-ID': ''},
+			{'X-Request-ID': 'has space'},
+			{'X-Request-ID': 'a' * 129},
+			{'X-Request-ID': 'bad\r\nrequest_id=forged'},
+			{'X-Request-ID': 'café'},
+			{'X-Request-ID': 42},
+		):
+			with self.subTest(headers=headers):
+				self.assertRegex(
+					request(headers=headers).id,  # pyright: ignore[reportArgumentType]
+					r'^[0-9a-f]{32}$',
+				)
+		return
+
 	def test_server_error_status_and_reason(self):
 		error = ServerError('처리 실패')
 		self.assertIsInstance(error, Error)
