@@ -84,12 +84,17 @@ class ExtensionTests(TestCase):
 	def test_status_metrics_uri_and_independent_use(self):
 		status = Status('/status', metrics_uri='/custom-metrics?x=1&y=2')
 		app = self.started(Application(exts=(status,)))
-		response = app(request('/status', headers={'Accept': 'application/json'}))
+		with self.assertLogs(level='DEBUG') as logs:
+			response = app(request('/status', headers={'Accept': 'application/json'}))
 		assert isinstance(response, Response)
 		assert isinstance(response.body, bytes)
 		self.assertIn(b'data-metrics-uri="/custom-metrics?x=1&amp;y=2"', response.body)
 		self.assertIn(b'fetch(document.body.dataset.metricsUri', response.body)
 		self.assertEqual(response.header('Content-Type'), 'text/html; charset=utf-8')
+		self.assertFalse(any(
+			'Status page' in record.getMessage()
+			for record in logs.records
+		))
 		app = self.started(Application(exts=(
 			Metrics('/a'),
 			Metrics('/b'),

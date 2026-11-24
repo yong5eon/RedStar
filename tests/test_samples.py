@@ -6,7 +6,11 @@ from json import (
 	dumps,
 	loads,
 )
-from logging import getLogger
+from logging import (
+	INFO,
+	LogRecord,
+	getLogger,
+)
 from pathlib import Path
 from runpy import run_path
 from struct import pack
@@ -81,6 +85,32 @@ class SampleTests(TestCase):
 				root.removeHandler(handler)
 				handler.close()
 		root.setLevel(self.logging_level)
+		return
+
+	def test_logging_formatter_shows_header_with_fixed_width(self):
+		with patch('sys.path', [str(SAMPLE), *path]):
+			namespace = run_path(
+				str(SAMPLE / 'Sample.py'),
+				run_name='sample_logging_test',
+			)
+		formatter = namespace['LoggingFormatter']()
+		for name, header in (
+			('Server.Python', 'Server'),
+			('Extension.FileSystem', 'Extension'),
+		):
+			with self.subTest(name=name):
+				record = LogRecord(
+					name,
+					INFO,
+					str(SAMPLE / 'Sample.py'),
+					1,
+					'sample message',
+					(),
+					None,
+				)
+				output = formatter.format(record)
+				self.assertIn(f'{header:<12} sample message', output)
+				self.assertNotIn(name, output)
 		return
 
 	def test_welcome_page_and_styles_are_served(self):

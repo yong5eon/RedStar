@@ -172,7 +172,6 @@ class FileSystem(Extension):
 		request: Request,
 	) -> ResponseFile:
 		path = request.parameters['path']
-		self.logger.debug('File response preparing: request_id=%s', request.id)
 		try:
 			format, encoding = self.connection.type(path)
 			file = self.connection.open(
@@ -185,9 +184,7 @@ class FileSystem(Extension):
 			IsADirectoryError,
 			PermissionError,
 		) as error:
-			self.logger.debug('File response rejected: request_id=%s error_type=%s', request.id, type(error).__name__)
 			raise file_error(error) from error
-		self.logger.debug('File response prepared: request_id=%s', request.id)
 		return ResponseFile(
 			file,
 			format=format,

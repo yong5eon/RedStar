@@ -264,10 +264,5 @@ class ServerRequestHandler(BaseHTTPRequestHandler):
 		code: Union[int, str] = '-',
 		size: Union[int, str] = '-',
 	) -> None:
-		"""Keep shared result logging separate because selecting headers does not complete transmission."""
-		self.logger.debug(
-			'HTTP response headers selected: status=%s method=%s',
-			code,
-			ascii(self.command[:32]) if self.command is not None else None,
-		)
+		"""Suppress default per-request output; the shared handler logs final transmission results."""
 		return

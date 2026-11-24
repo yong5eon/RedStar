@@ -122,7 +122,6 @@ class Specifications(Extension):
 		self,
 	) -> dict:
 		started = monotonic()
-		self.logger.debug('Specification generation started')
 		schemas: dict[str, Any] = {}
 		security: dict[str, Any] = {}
 
@@ -336,7 +335,5 @@ class Specifications(Extension):
 		self,
 		request: Request,
 	) -> Response:
-		self.logger.debug('Specification response preparing: request_id=%s', request.id)
 		response = ResponseJSON(self.document())
-		self.logger.debug('Specification response prepared: request_id=%s', request.id)
 		return response

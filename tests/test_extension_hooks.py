@@ -9,6 +9,7 @@ from typing import (
 	Sequence,
 )
 from unittest import TestCase
+from unittest.mock import patch
 
 from RedStar import (
 	Application,
@@ -454,10 +455,20 @@ class ExtensionHookTests(TestCase):
 			on_request=RequestHook(),
 			on_request_response=ResponseHook(),
 		))
-		response = app(request('/extension'))
+		value = request('/extension')
+		with self.assertLogs('Extension', level='DEBUG') as logs:
+			response = app(value)
 		assert response is not None
 		self.assertEqual(response.body, b'changed')
 		self.assertEqual(events, ['request', 'response:/changed'])
+		self.assertTrue(any(
+			'Request replaced: previous_request_id=' + value.id in record.getMessage()
+			for record in logs.records
+		))
+		self.assertFalse(any(
+			'starting' in record.getMessage() or 'completed' in record.getMessage()
+			for record in logs.records
+		))
 
 		class ErrorHook(ExtensionRequestError):
 			def __call__(
@@ -475,8 +486,11 @@ class ExtensionHookTests(TestCase):
 				raise ValueError('original')
 
 		app = self.start(Failing(on_request_error=ErrorHook()))
-		with self.assertRaisesRegex(RuntimeError, 'error hook failed') as caught:
-			app(request('/extension'))
+		value = request('/extension')
+		with patch('RedStar.Runners.RunExtension.logger.debug') as debug:
+			with self.assertRaisesRegex(RuntimeError, 'error hook failed') as caught:
+				app(value)
+		debug.assert_not_called()
 		self.assertIsInstance(caught.exception.__context__, ValueError)
 		return
 
@@ -520,7 +534,9 @@ class ExtensionHookTests(TestCase):
 		)
 		app.start()
 		self.addCleanup(app.stop)
-		result = app(request('/extension'))
+		with patch('RedStar.Runners.RunExtension.logger.debug') as debug:
+			result = app(request('/extension'))
+		debug.assert_not_called()
 		self.assertIs(result, response)
 		self.assertEqual(events, ['extension-error', 'extension-error', 'application-response'])
 		return

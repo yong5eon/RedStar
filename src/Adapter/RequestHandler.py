@@ -30,11 +30,6 @@ def handle_request(
 	try:
 		try:
 			request = create_request()
-			logger.debug(
-				'HTTP request received: request_id=%s method=%s',
-				request.id,
-				ascii(request.method[:32]),
-			)
 			response = application(request)
 		except ClientDisconnected:
 			raise
@@ -65,7 +60,6 @@ def handle_request(
 				body=b'Internal Server Error',
 			)
 		if response is not None:
-			logger.debug('Response transmission starting: request_id=%s status=%s', request.id if request is not None else None, response.status)
 			writer.response(
 				response,
 				filtered=True,
@@ -98,9 +92,7 @@ def handle_request(
 		)
 		if response is not None:
 			try:
-				logger.debug('Response body cleaning up: request_id=%s', request.id if request is not None else None)
 				response.close()
-				logger.debug('Response body cleaned up: request_id=%s', request.id if request is not None else None)
 			except Exception:
 				logger.exception(
 					'Response body cleanup failed: request_id=%s',

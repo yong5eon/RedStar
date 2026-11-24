@@ -83,6 +83,18 @@ class Lifecycle(Extension):
 
 
 class AdapterTests(TestCase):
+	def test_server_access_logs_default_off_and_can_be_enabled(self):
+		gunicorn = GunicornServer('127.0.0.1', 0, Application())
+		self.assertIsNone(gunicorn.options['accesslog'])
+		gunicorn = GunicornServer('127.0.0.1', 0, Application(), accesslog='-')
+		self.assertEqual(gunicorn.options['accesslog'], '-')
+
+		uvicorn = UvicornServer('127.0.0.1', 0, Application())
+		self.assertFalse(uvicorn.options['access_log'])
+		uvicorn = UvicornServer('127.0.0.1', 0, Application(), access_log=True)
+		self.assertTrue(uvicorn.options['access_log'])
+		return
+
 	def test_python_supports_three_call_styles(self):
 		for style in (
 			'assigned',

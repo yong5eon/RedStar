@@ -94,7 +94,7 @@ class LoggingFormatter(Formatter):
 
 	def __init__(self) -> None:
 		super().__init__(
-			'%(asctime)s %(levelname)-8s %(name)s %(message)s',
+			'%(asctime)s %(levelname)-8s %(name)-12s %(message)s',
 		)
 		return
 
@@ -102,7 +102,9 @@ class LoggingFormatter(Formatter):
 		self,
 		record: LogRecord,
 	) -> str:
-		text = super().format(copy(record))
+		record = copy(record)
+		record.name = record.name.split('.', 1)[0]
+		text = super().format(record)
 		if record.levelno >= ERROR:
 			color = '\x1b[31m'
 		elif record.levelno >= WARNING:

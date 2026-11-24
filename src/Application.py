@@ -654,30 +654,24 @@ class Application:
 	) -> Optional[Response]:
 		self.ensure_not_in_hook()
 		self.logger.debug('Application request received: request_id=%s method=%s', request.id, ascii(request.method[:32]))
-		request_id = request.id
 		request_hooks, response_hooks, error_hooks = self.get_request_hook_snapshot()
 		previous_request = getattr(self.hook_context, 'request', None)
 		self.hook_context.request = request
 		try:
-			for index, hook in enumerate(request_hooks):
+			for hook in request_hooks:
 				previous_id = request.id
-				self.logger.debug('Application request hook starting: request_id=%s index=%s hook=%s', request.id, index, type(hook).__qualname__)
 				request = self.invoke_hook(
 					hook,
 					request,
 				)
 				if not isinstance(request, Request):
 					raise TypeError('ApplicationRequest hooks must return a Request')
-				self.logger.debug('Application request hook completed: request_id=%s index=%s', request.id, index)
 				if previous_id != request.id:
 					self.logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, request.id)
-			self.logger.debug('Application dispatch starting: request_id=%s', request.id)
 			response = self.dispatch_request(request)
-			self.logger.debug('Application dispatch completed: request_id=%s', request.id)
-			for index, hook in enumerate(response_hooks):
+			for hook in response_hooks:
 				previous = response
 				previous_body = previous.body if previous is not None else None
-				self.logger.debug('Application response hook starting: request_id=%s index=%s hook=%s', request.id, index, type(hook).__qualname__)
 				try:
 					result = self.invoke_hook(
 						hook,
@@ -713,26 +707,9 @@ class Application:
 								preserve_error=True,
 							)
 						raise
-				self.logger.debug('Application response hook completed: request_id=%s index=%s', request.id, index)
-			self.logger.debug(
-				'Application response provided: request_id=%s mode=%s',
-				request.id,
-				'returned' if response is not None else 'direct',
-			)
 			return response
 		except Exception as error:
-			self.logger.debug(
-				'Application request failed: request_id=%s error_type=%s',
-				request_id,
-				type(error).__qualname__,
-			)
-			for index, hook in enumerate(error_hooks):
-				self.logger.debug(
-					'Application error hook starting: request_id=%s index=%s hook=%s',
-					request.id if isinstance(request, Request) else request_id,
-					index,
-					type(hook).__qualname__,
-				)
+			for hook in error_hooks:
 				result = self.invoke_hook(
 					hook,
 					request,
@@ -749,7 +726,6 @@ class Application:
 						)
 						raise RuntimeError('Cannot return a Response after starting direct output')
 					return result
-				self.logger.debug('Application error hook completed: request_id=%s index=%s', request_id, index)
 			raise
 		finally:
 			self.hook_context.request = previous_request

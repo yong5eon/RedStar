@@ -31,6 +31,7 @@ from unittest.mock import (
 from RedStar import (
 	Application,
 	ApplicationRequest,
+	ApplicationRequestError,
 	Extension,
 	Request,
 	RequestRunner,
@@ -221,7 +222,7 @@ class LoggingTests(TestCase):
 		self.assertTrue(all(record.levelno == INFO for record in logs.records))
 		return
 
-	def test_handler_failure_is_not_completed_or_logged_with_traceback(self):
+	def test_handler_failure_has_no_request_runner_debug_log(self):
 		class Failure(
 			RequestRunner,
 			method='GET',
@@ -234,18 +235,48 @@ class LoggingTests(TestCase):
 				raise ValueError('private-error')
 
 		value = request('/failure')
-		with self.assertLogs('Request', level=DEBUG) as logs:
+		with patch('logging.Logger.debug') as debug:
 			with self.assertRaisesRegex(ValueError, 'private-error'):
 				RunRequest(Failure).run(value)
-		messages = '\n'.join(logs.output)
-		self.assertIn('Handler running', messages)
-		self.assertIn('Runner failed', messages)
-		self.assertIn('phase=runner.run', messages)
-		self.assertIn('error_type=ValueError', messages)
-		self.assertNotIn('Handler returned', messages)
-		self.assertNotIn('Runner response provided', messages)
-		self.assertNotIn('private-error', messages)
-		self.assertTrue(all(record.exc_info is None for record in logs.records))
+		debug.assert_not_called()
+		return
+
+	def test_application_error_hook_handles_failure_without_framework_error_logs(self):
+		class Failure(ApplicationRequest):
+			def __call__(
+				self,
+				value,
+			):
+				raise ValueError('private-error')
+
+		class Recover(ApplicationRequestError):
+			def __init__(self):
+				self.error = None
+				return
+
+			def __call__(
+				self,
+				value,
+				error,
+			):
+				self.error = error
+				return Response(status=400)
+
+		value = request()
+		recover = Recover()
+		app = Application(on_request=Failure(), on_request_error=recover)
+		with self.assertLogs('Application', level=DEBUG) as logs:
+			result = app(value)
+		self.assertIsNotNone(result)
+		assert result is not None
+		self.assertEqual(result.status, 400)
+		self.assertIsInstance(recover.error, ValueError)
+		debug_records = [
+			record for record in logs.records
+			if record.levelno == DEBUG
+		]
+		self.assertEqual(len(debug_records), 1)
+		self.assertIn('Application request received', debug_records[0].getMessage())
 		return
 
 	def test_full_request_has_safe_context_and_one_transmission_summary(self):
@@ -255,28 +286,16 @@ class LoggingTests(TestCase):
 		with self.assertLogs(level=DEBUG) as logs:
 			transmit(app, value)
 		messages = '\n'.join(logs.output)
-		for event in (
-			'Application dispatch starting',
-			'Application dispatch completed',
-			'CORS origin check starting',
-			'CORS origin check completed',
-			'Handler creating',
-			'Handler created',
-			'Handler running',
-			'Handler returned',
-			'CORS response starting',
-			'CORS response completed',
-			'Response transmission starting',
-			'Response body cleaning up',
-			'Response body cleaned up',
-		):
-			self.assertIn(event, messages)
+		debug_records = [record for record in logs.records if record.levelno == DEBUG]
+		self.assertEqual(len(debug_records), 2)
+		self.assertIn('Application request received', debug_records[0].getMessage())
+		self.assertIn('Route selected', debug_records[1].getMessage())
 		summaries = [record for record in logs.records if 'HTTP transmission result' in record.getMessage()]
 		self.assertEqual(len(summaries), 1)
 		self.assertEqual(summaries[0].levelno, INFO)
 		self.assertIn('request_id=' + value.id, summaries[0].getMessage())
 		self.assertIn('status=200 outcome=completed', summaries[0].getMessage())
-		self.assertIn("route='/sample/:id'", messages)
+		self.assertIn("route='/sample/:id'", debug_records[1].getMessage())
 		for private in (
 			'private-path',
 			'private-query',
@@ -288,19 +307,39 @@ class LoggingTests(TestCase):
 		return
 
 	def test_hook_order_and_request_replacement_are_observable(self):
+		events = []
+
 		class Identity(RequestRunnerRequest):
+			def __init__(
+				self,
+				index,
+				events,
+			):
+				self.index = index
+				self.events = events
+				return
+
 			def __call__(
 				self,
 				value,
 			):
+				self.events.append('runner.request_hook.' + str(self.index))
 				return value
 
 		class KeepResponse(RequestRunnerRequestResponse):
+			def __init__(
+				self,
+				events,
+			):
+				self.events = events
+				return
+
 			def __call__(
 				self,
 				value,
 				response,
 			):
+				self.events.append('runner.response_hook')
 				return response
 
 		class Replace(ApplicationRequest):
@@ -317,10 +356,10 @@ class LoggingTests(TestCase):
 			method='GET',
 			url='/sample/:id',
 			on_request=(
-				Identity(),
-				Identity(),
+				Identity(0, events),
+				Identity(1, events),
 			),
-			on_request_response=KeepResponse(),
+			on_request_response=KeepResponse(events),
 		):
 			pass
 
@@ -331,11 +370,18 @@ class LoggingTests(TestCase):
 		with self.assertLogs(level=DEBUG) as logs:
 			transmit(app, value)
 		messages = '\n'.join(logs.output)
-		self.assertIn('runner.request_hook.0', messages)
-		self.assertIn('runner.request_hook.1', messages)
-		self.assertIn('runner.response_hook.0', messages)
 		self.assertIn('Request replaced: previous_request_id=' + value.id, messages)
 		self.assertIn('request_id=' + replacement.replacement.id, messages)
+		self.assertEqual(events, [
+			'runner.request_hook.0',
+			'runner.request_hook.1',
+			'runner.response_hook',
+		])
+		self.assertFalse(any(
+			'starting' in record.getMessage() or 'completed' in record.getMessage()
+			for record in logs.records
+			if record.levelno == DEBUG
+		))
 		summary = next(record.getMessage() for record in logs.records if 'HTTP transmission result' in record.getMessage())
 		self.assertIn('request_id=' + value.id, summary)
 		self.assertNotIn('replaced-private', messages)
@@ -371,11 +417,12 @@ class LoggingTests(TestCase):
 		self.assertEqual(len(errors), 1)
 		self.assertEqual(errors[0].name, 'Server')
 		self.assertIsNotNone(errors[0].exc_info)
-		self.assertTrue(any(
-			'Runner failed' in record.getMessage() and 'phase=runner.run' in record.getMessage()
+		self.assertFalse(any(
+			'failed' in record.getMessage().lower()
+			or 'error hook' in record.getMessage().lower()
 			for record in logs.records
+			if record.levelno == DEBUG
 		))
-		self.assertIn('runner.error_hook.0', '\n'.join(logs.output))
 		summary = next(record.getMessage() for record in logs.records if 'HTTP transmission result' in record.getMessage())
 		self.assertIn('status=500 outcome=completed', summary)
 		return
@@ -852,7 +899,8 @@ class LoggingTests(TestCase):
 				'Extension.Swagger',
 				'Request.WebSocket',
 			):
-				self.assertIn(name + ' source=' + name, text)
+				header = name.split('.', 1)[0]
+				self.assertIn(f'{header:<12} source={name}', text)
 			for name in (
 				'SampleExtra',
 				'ApplicationExtra',

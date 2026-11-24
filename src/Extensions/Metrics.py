@@ -495,17 +495,14 @@ class Metrics(Extension):
 		request: Request,
 	) -> Response:
 		if request.header('Accept') == 'application/json':
-			self.logger.debug('Metrics snapshot preparing: request_id=%s', request.id)
 			response = ResponseJSON(
 				self.collector.snapshot(),
 				headers={'Cache-Control': 'no-store'},
 			)
 		else:
-			self.logger.debug('Metrics text rendering: request_id=%s', request.id)
 			response = Response(
 				body=self.collector.render().encode('utf-8'),
 				format='text/plain; version=0.0.4',
 				charset='utf-8',
 			)
-		self.logger.debug('Metrics response prepared: request_id=%s', request.id)
 		return response
