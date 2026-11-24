@@ -99,12 +99,10 @@ class Status(Extension):
 		self,
 		request: Request,
 	) -> Response:
-		self.logger.debug('Status page preparing: request_id=%s', request.id)
 		response = page(
 			'Status',
 			self.title,
 			self.description,
 			parameters={'metrics_uri': self.metrics_uri},
 		)
-		self.logger.debug('Status page prepared: request_id=%s', request.id)
 		return response

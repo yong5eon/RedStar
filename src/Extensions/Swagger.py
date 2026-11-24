@@ -99,7 +99,6 @@ class Swagger(Extension):
 		self,
 		request: Request,
 	) -> Response:
-		self.logger.debug('Swagger page preparing: request_id=%s', request.id)
 		response = page(
 			'Swagger',
 			self.title,
@@ -113,5 +112,4 @@ class Swagger(Extension):
 				"connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
 			),
 		)
-		self.logger.debug('Swagger page prepared: request_id=%s', request.id)
 		return response

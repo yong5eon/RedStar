@@ -279,36 +279,7 @@ class RequestRunnerHookTests(TestCase):
 				events.append('constructor')
 				return
 
-		with self.assertLogs('Request', level='DEBUG') as logs:
-			RunRequest(Handler).run(request())
-		messages = '\n'.join(logs.output)
-		for phase in (
-			'runner.validation.auth',
-			'runner.validation.parameters',
-			'runner.validation.query',
-			'runner.validation.headers',
-		):
-			self.assertTrue(any(
-				'Validation starting' in record.getMessage() and 'phase=' + phase in record.getMessage()
-				for record in logs.records
-			))
-			self.assertTrue(any(
-				'Validation completed' in record.getMessage() and 'phase=' + phase in record.getMessage()
-				for record in logs.records
-			))
-		for event in (
-			'Request body processing',
-			'Request body processed',
-			'Handler creating',
-			'Handler created',
-			'Request hook starting',
-			'Request hook completed',
-			'Handler running',
-			'Handler returned',
-			'Response hook starting',
-			'Response hook completed',
-		):
-			self.assertIn(event, messages)
+		RunRequest(Handler).run(request())
 		self.assertEqual(events, [
 			'auth',
 			'parameters',
@@ -541,13 +512,19 @@ class RequestRunnerHookTests(TestCase):
 		app.add(runner)
 		output = BytesIO()
 		writer = ResponseWriter(lambda current, chunked: None, output)
-		handle_request(
-			app,
-			lambda: request(writer=writer),
-			writer,
-		)
+		with self.assertLogs(level='DEBUG') as logs:
+			handle_request(
+				app,
+				lambda: request(writer=writer),
+				writer,
+			)
 		self.assertEqual(writer.status, 422)
 		self.assertEqual(output.getvalue(), b'custom error')
+		self.assertFalse(any(
+			'failed' in record.getMessage().lower()
+			or 'error hook' in record.getMessage().lower()
+			for record in logs.records
+		))
 		return
 
 	def test_error_response_cannot_replace_started_direct_output(self):

@@ -47,6 +47,7 @@ class Server(ServerAdapter):
 			raise ValueError('The adapter manages WebSocket framing; configure limits and ping in WebSocket handlers')
 		self.wsgi_workers = wsgi_workers
 		self.send_queue_size = send_queue_size
+		options.setdefault('access_log', False)
 		self.options = options
 		return
 

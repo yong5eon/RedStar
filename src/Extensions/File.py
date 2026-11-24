@@ -89,7 +89,5 @@ class File(Extension):
 		self,
 		request: Request,
 	) -> ResponseFile:
-		self.logger.debug('File response preparing: request_id=%s', request.id)
 		response = ResponseFile(self.file)
-		self.logger.debug('File response prepared: request_id=%s', request.id)
 		return response

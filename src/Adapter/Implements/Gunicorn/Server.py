@@ -44,6 +44,7 @@ class Server(ServerAdapter):
 			raise ValueError('Use host and port instead of bind')
 		self.workers = workers
 		self.worker_class = worker_class
+		options.setdefault('accesslog', None)
 		self.options = options
 		return
 
