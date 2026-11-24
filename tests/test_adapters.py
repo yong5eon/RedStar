@@ -243,6 +243,28 @@ class WSGITests(TestCase):
 		result['body'] = b''.join(result['body'])
 		return result
 
+	def test_request_id_from_wsgi_header_is_used_without_response_echo(self):
+		class Sample(
+			RequestRunner,
+			method='GET',
+			url='/',
+		):
+			def run(
+				self,
+				request,
+			):
+				return Response(body=request.id.encode('ascii'))
+
+		application = Application()
+		application.add(Sample)
+		result = self.invoke(
+			application,
+			HTTP_X_REQUEST_ID='proxy_42@',
+		)
+		self.assertEqual(result['body'], b'proxy_42@')
+		self.assertNotIn('X-Request-ID', dict(result['headers']))
+		return
+
 	def test_custom_method_uri_and_empty_gunicorn_input(self):
 		class Sample(
 			RequestRunner,

@@ -27,11 +27,16 @@ def run_extension(
 	"""Wrap only the extension-processing boundary after internal RequestRunner validation."""
 	try:
 		for hook in extension.request_hooks:
+			previous_request = request
+			previous_id = request.id
 			result = hook(request)
 			if not isinstance(result, Request):
 				raise TypeError('ExtensionRequest hooks must return a Request')
-			if request.id != result.id:
-				logger.debug('Request replaced: previous_request_id=%s request_id=%s', request.id, result.id)
+			replaced = result is not previous_request
+			if replaced:
+				result.id = previous_id
+			if replaced or previous_id != result.id:
+				logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, result.id)
 			request = result
 		response = extension(request)
 		if response is not None and not isinstance(response, Response):

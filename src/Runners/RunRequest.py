@@ -104,11 +104,16 @@ class RunRequest:
 				request.body = properties.body(request)
 			runner = self.object()
 			for hook in properties.on_request:
+				previous_request = request
+				previous_id = request.id
 				result = hook(request)
 				if not isinstance(result, Request):
 					raise TypeError('RequestRunnerRequest hooks must return a Request')
-				if request.id != result.id:
-					self.logger.debug('Request replaced: previous_request_id=%s request_id=%s', request.id, result.id)
+				replaced = result is not previous_request
+				if replaced:
+					result.id = previous_id
+				if replaced or previous_id != result.id:
+					self.logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, result.id)
 				request = result
 			writer = request.response_writer
 			if writer is not None:

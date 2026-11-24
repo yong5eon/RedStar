@@ -659,6 +659,7 @@ class Application:
 		self.hook_context.request = request
 		try:
 			for hook in request_hooks:
+				request_before_hook = request
 				previous_id = request.id
 				request = self.invoke_hook(
 					hook,
@@ -666,7 +667,10 @@ class Application:
 				)
 				if not isinstance(request, Request):
 					raise TypeError('ApplicationRequest hooks must return a Request')
-				if previous_id != request.id:
+				replaced = request is not request_before_hook
+				if replaced:
+					request.id = previous_id
+				if replaced or previous_id != request.id:
 					self.logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, request.id)
 			response = self.dispatch_request(request)
 			for hook in response_hooks:
