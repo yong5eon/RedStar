@@ -37,9 +37,9 @@ from RedStar.Extensions import (
 application = Application(exts=(
   Metrics('/metrics'),
   Ping('/ping'),
-  SpecificationsJSON('/api/doc', title='Example API'),
-  SpecificationsYAML('/api/doc.yaml', title='Example API'),
-  Swagger('/swagger', spec_uri='/api/doc'),
+  SpecificationsJSON('/api/doc/json', title='Example API'),
+  SpecificationsYAML('/api/doc/yaml', title='Example API'),
+  Swagger('/swagger', spec_uri='/api/doc/json'),
 ))
 ```
 

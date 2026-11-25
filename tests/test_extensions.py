@@ -731,7 +731,7 @@ class SpecTests(TestCase):
 		self.assertEqual(example, expected_example)
 		return
 
-	def test_specifications_exports_have_no_legacy_name(self):
+	def test_specifications_base_class_is_not_exported(self):
 		extensions = import_module('RedStar.Extensions')
 		specifications = import_module('RedStar.Extensions.Specifications')
 		self.assertEqual(
@@ -743,7 +743,9 @@ class SpecTests(TestCase):
 			1,
 		)
 		self.assertNotIn('Specifications', extensions.__all__)
-		self.assertFalse(hasattr(specifications, 'Specifications'))
+		self.assertIs(extensions.Specifications, specifications)
+		self.assertNotIn('Specifications', specifications.__all__)
+		self.assertEqual(specifications.Specifications.__name__, 'Specifications')
 		return
 
 	def test_auth_schemes_with_same_kind_remain_distinct(self):

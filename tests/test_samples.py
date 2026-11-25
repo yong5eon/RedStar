@@ -17,6 +17,7 @@ from struct import pack
 from sys import path
 from unittest import TestCase
 from unittest.mock import patch
+from yaml import safe_load
 from RedStar import (
 	Request,
 	RequestReader,
@@ -363,12 +364,16 @@ class SampleTests(TestCase):
 				self.assertEqual(status, 200, data)
 				if mime is not None:
 					self.assertEqual(headers['Content-Type'], mime)
-			status, headers, data = self.call(address, 'GET', '/api/doc')
+			status, headers, data = self.call(address, 'GET', '/api/doc/json')
 			self.assertEqual(status, 200)
 			self.assertEqual(loads(data)['openapi'], '3.1.0')
+			status, headers, data = self.call(address, 'GET', '/api/doc/yaml')
+			self.assertEqual(status, 200)
+			self.assertEqual(headers['Content-Type'], 'application/yaml')
+			self.assertEqual(safe_load(data)['openapi'], '3.1.0')
 			status, headers, data = self.call(address, 'GET', '/swagger')
 			self.assertEqual(status, 200)
-			self.assertIn(b'data-spec-url="/api/doc"', data)
+			self.assertIn(b'data-spec-url="/api/doc/json"', data)
 			self.assertEqual(self.call(address, 'GET', '/console')[0], 404)
 		return
 

@@ -56,7 +56,7 @@ __all__ = (
 	'SpecificationsYAML',
 )
 
-class _Specifications(Extension):
+class Specifications(Extension):
 	"""Build an OpenAPI 3.1 document from the current shared route declarations."""
 
 	logger = getLogger('Extension.Specifications')
@@ -331,7 +331,7 @@ class _Specifications(Extension):
 		)
 		return document
 
-class SpecificationsJSON(_Specifications):
+class SpecificationsJSON(Specifications):
 	"""Serialize the generated OpenAPI document as JSON."""
 
 	def __call__(
@@ -341,7 +341,7 @@ class SpecificationsJSON(_Specifications):
 		response = ResponseJSON(self.document())
 		return response
 
-class SpecificationsYAML(_Specifications):
+class SpecificationsYAML(Specifications):
 	"""Serialize the generated OpenAPI document as YAML."""
 
 	def __call__(
