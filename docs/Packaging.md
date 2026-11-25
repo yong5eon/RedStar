@@ -6,7 +6,7 @@
 
 `py-wsgi-redstar` 배포물 하나에 코어, 기본 Python 서버, Gunicorn·Uvicorn 어댑터 소스가 모두 포함됩니다. extras 지정 여부와 관계없이 같은 파일이 설치되며, 공개 Python import 경로는 `RedStar`입니다(PyPI 배포명과 import 이름이 다릅니다). 기존 이름의 호환 alias는 제공하지 않습니다.
 
-`Gunicorn`과 `Uvicorn` extras는 해당 어댑터가 필요로 하는 외부 의존성만 추가로 설치합니다.
+YAML OpenAPI 응답을 위해 `PyYAML>=6`이 기본 의존성으로 설치됩니다. `Gunicorn`과 `Uvicorn` extras는 해당 어댑터가 필요로 하는 외부 의존성만 추가로 설치합니다.
 
 | extra | 추가로 설치되는 외부 의존성 |
 | --- | --- |
@@ -17,7 +17,7 @@ Metrics는 `redstar_*` 이름을, OpenAPI vendor extension은 `x-redstar-*` 키�
 
 ```mermaid
 flowchart LR
-  A["py-wsgi-redstar[Uvicorn] 설치"] --> B["py-wsgi-redstar 배포물: 코어 · Python 서버 · 모든 어댑터 소스"]
+  A["py-wsgi-redstar[Uvicorn] 설치"] --> B["py-wsgi-redstar 배포물: 코어 · PyYAML · Python 서버 · 모든 어댑터 소스"]
   A --> C["uvicorn · a2wsgi"]
 ```
 

@@ -1,1 +1,1 @@
-"""HTTP samples that run independently of the Specifications/OpenAPI extension."""
+"""HTTP samples that run independently of the OpenAPI extension."""

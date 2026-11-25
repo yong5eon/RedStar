@@ -4,7 +4,10 @@ from .Metrics import (
 	Metrics,
 	MetricsCollector,
 )
-from .Specifications import Specifications
+from .Specifications import (
+	SpecificationsJSON,
+	SpecificationsYAML,
+)
 from .Swagger import Swagger
 from .File import File
 from .FileSystem import FileSystem
@@ -13,7 +16,8 @@ __all__ = (
 	'Status',
 	'Ping',
 	'Metrics',
-	'Specifications',
+	'SpecificationsJSON',
+	'SpecificationsYAML',
 	'Swagger',
 	'File',
 	'FileSystem',

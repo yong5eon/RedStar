@@ -11,6 +11,7 @@ from typing import (
 )
 from unittest import TestCase
 from unittest.mock import patch
+from yaml import safe_load
 
 from RedStar import (
 	Application,
@@ -44,7 +45,8 @@ from RedStar.Extensions import (
 	Status,
 	Ping,
 	Metrics,
-	Specifications,
+	SpecificationsJSON,
+	SpecificationsYAML,
 	Swagger,
 )
 from RedStar.IO.Readers import (
@@ -180,7 +182,7 @@ class ExtensionTests(TestCase):
 	def test_real_http_extensions_startup_and_application_isolation(self):
 		metrics = Metrics('/metrics')
 		collector = metrics.collector
-		spec = Specifications('/spec')
+		spec = SpecificationsJSON('/spec')
 		app = Application(
 			exts=(
 				Status('/status', metrics_uri='/metrics', title='<RedStar>'),
@@ -191,7 +193,7 @@ class ExtensionTests(TestCase):
 			),
 		)
 		app.add(Echo)
-		other = Application(exts=(Specifications('/spec'),))
+		other = Application(exts=(SpecificationsJSON('/spec'),))
 		with redirect_stdout(StringIO()) as output:
 			with running(app) as address:
 				for path, expected in (
@@ -233,9 +235,9 @@ class ExtensionTests(TestCase):
 		)
 		self.assertNotIn(f'Swagger: http://127.0.0.1:{address[1]}', output.getvalue())
 		self.started(other)
-		other_spec = next(extension for extension in other.exts if isinstance(extension, Specifications))
+		other_spec = next(extension for extension in other.exts if isinstance(extension, SpecificationsJSON))
 		self.assertEqual(other_spec.document()['paths'], {})
-		specification = next(extension for extension in app.exts if isinstance(extension, Specifications))
+		specification = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 		self.assertNotIn('/spec', specification.document()['paths'])
 		self.assertNotIn('/status', specification.document()['paths'])
 		ping_extension = Ping('/state')
@@ -250,7 +252,7 @@ class ExtensionTests(TestCase):
 
 	def test_dependency_collision_and_instance_ownership(self):
 		for extensions in (
-			(Specifications('/same'), Specifications('/same')),
+			(SpecificationsJSON('/same'), SpecificationsJSON('/same')),
 		):
 			with self.assertRaises(ValueError):
 				Application(exts=extensions).start()
@@ -269,12 +271,12 @@ class ExtensionTests(TestCase):
 			def run(self, req):
 				return Response()
 
-		app = Application(exts=(Specifications('/metrics'),))
+		app = Application(exts=(SpecificationsJSON('/metrics'),))
 		app.add(Conflict)
 		with self.assertRaises(ValueError):
 			app.start()
 		with self.assertRaises(ValueError):
-			Specifications('/:variable')
+			SpecificationsJSON('/:variable')
 		return
 
 	def test_lifecycle_order_rollback_and_failures_are_explicit(self):
@@ -327,7 +329,7 @@ class ExtensionTests(TestCase):
 
 	def test_swagger_spec_uri_escaping_headers_and_head(self):
 		swagger = Swagger('/swagger', spec_uri='/custom-spec', title='<RedStar>', description='</script>')
-		spec = Specifications('/custom-spec')
+		spec = SpecificationsJSON('/custom-spec')
 		app = self.started(Application(exts=(
 			swagger,
 			spec,
@@ -352,7 +354,7 @@ class ExtensionTests(TestCase):
 		self.assertIn("connect-src 'self'", policy)
 		self.assertIn("img-src 'self' data: blob:", policy)
 		self.assertIn('https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.0/', policy)
-		specification = next(extension for extension in app.exts if isinstance(extension, Specifications))
+		specification = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 		self.assertNotIn('/swagger', specification.document()['paths'])
 		response = app(request('/swagger', headers={'Accept': 'application/json'}))
 		assert isinstance(response, Response)
@@ -399,8 +401,8 @@ class ExtensionTests(TestCase):
 		assert isinstance(response.body, bytes)
 		self.assertIn(b'data-spec-url="/external-spec?format=json&amp;version=1"', response.body)
 		app = self.started(Application(exts=(
-			Specifications('/a'),
-			Specifications('/b'),
+			SpecificationsJSON('/a'),
+			SpecificationsJSON('/b'),
 			Swagger('/swagger', spec_uri='/b'),
 		)))
 		response = app(request('/swagger'))
@@ -567,13 +569,13 @@ class SpecTests(TestCase):
 				return Response()
 
 		app = Application(exts=(
-			Specifications('/spec'),
+			SpecificationsJSON('/spec'),
 			Ping('/shared'),
 		))
 		app.add(Submit)
 		app.start()
 		self.addCleanup(app.stop)
-		specification = next(extension for extension in app.exts if isinstance(extension, Specifications))
+		specification = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 		document = specification.document()
 		self.assertEqual(set(document['paths']['/shared']), {'post'})
 		self.assertNotIn('/spec', document['paths'])
@@ -613,7 +615,25 @@ class SpecTests(TestCase):
 				content=Content(
 					'application/json',
 					Object(properties=Properties(value=Integer(min=0, max=10))),
-					{'value': 1},
+					{
+						'value': 1,
+						'strings': [
+							'yes',
+							'true',
+							'null',
+							'01',
+							'2026-11-25',
+							'한글',
+						],
+						'values': [
+							None,
+							True,
+							False,
+							3,
+							3.5,
+						],
+						'nested': {'text': 'café'},
+					},
 				),
 			),
 			response=ResponseSpecification(
@@ -647,15 +667,20 @@ class SpecTests(TestCase):
 			def run(self, req):
 				return Response()
 
-		specification = Specifications('/spec')
-		app = Application(exts=(specification,))
+		specification = SpecificationsJSON('/spec')
+		yaml_specification = SpecificationsYAML('/spec.yaml')
+		app = Application(exts=(
+			specification,
+			yaml_specification,
+		))
 		app.add(Documented)
 		app.add(Custom)
 		app.add(Upload)
 		app.start()
 		self.addCleanup(app.stop)
-		spec = next(extension for extension in app.exts if isinstance(extension, Specifications))
+		spec = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 		document = spec.document()
+		self.assertEqual(document['openapi'], '3.1.0')
 		self.assertEqual(
 			list(document['paths']['/upload']['put']['requestBody']['content']),
 			['*/*'],
@@ -665,6 +690,10 @@ class SpecTests(TestCase):
 		self.assertEqual(operation['description'], '본문을 검증한다')
 		self.assertEqual(operation['tags'], ['Items', 'Write'])
 		self.assertEqual(operation['security'], [{'HTTP': []}, {}])
+		self.assertEqual(
+			operation['responses']['201']['content']['application/json']['schema']['$ref'],
+			'#/components/schemas/Model',
+		)
 		parameters = {(item['in'], item['name']): item for item in operation['parameters']}
 		self.assertTrue(parameters['path', 'id']['required'])
 		self.assertEqual(parameters['path', 'id']['schema']['minimum'], 1)
@@ -674,9 +703,53 @@ class SpecTests(TestCase):
 		self.assertEqual(parameters['header', 'X-Required']['schema']['minLength'], 2)
 		self.assertEqual(parameters['header', 'X-Required']['schema']['maxLength'], 8)
 		self.assertEqual(parameters['header', 'X-Required']['schema']['enum'], ['yes', 'no'])
-		self.assertEqual(operation['requestBody']['content']['application/json']['example'], {'value': 1})
+		expected_example = {
+			'value': 1,
+			'strings': ['yes', 'true', 'null', '01', '2026-11-25', '한글'],
+			'values': [None, True, False, 3, 3.5],
+			'nested': {'text': 'café'},
+		}
+		self.assertEqual(
+			operation['requestBody']['content']['application/json']['example'],
+			expected_example,
+		)
 		self.assertIn('Model', document['components']['schemas'])
 		self.assertEqual(document['x-redstar-operations'][0]['method'], 'CUSTOM')
+		json_response = app(request('/spec'))
+		with patch(
+			'RedStar.Extensions.Specifications.ResponseJSON',
+			side_effect=AssertionError('YAML serialization must not use a JSON response'),
+		):
+			yaml_response = app(request('/spec.yaml'))
+		assert isinstance(json_response, Response)
+		assert isinstance(yaml_response, Response)
+		self.assertIsInstance(json_response.body, bytes)
+		self.assertIsInstance(yaml_response.body, bytes)
+		self.assertEqual(json_response.header('Content-Type'), 'application/json; charset=utf-8')
+		self.assertEqual(yaml_response.header('Content-Type'), 'application/yaml')
+		self.assertIn('한글'.encode('utf-8'), yaml_response.body)
+		yaml_document = safe_load(yaml_response.body)
+		self.assertEqual(yaml_document, document)
+		content = yaml_document['paths']['/items/{id}']['post']['requestBody']['content']
+		example = content['application/json']['example']
+		self.assertEqual(example, expected_example)
+		return
+
+	def test_specifications_base_class_is_not_exported(self):
+		extensions = import_module('RedStar.Extensions')
+		specifications = import_module('RedStar.Extensions.Specifications')
+		self.assertEqual(
+			extensions.__all__.count('SpecificationsJSON'),
+			1,
+		)
+		self.assertEqual(
+			extensions.__all__.count('SpecificationsYAML'),
+			1,
+		)
+		self.assertNotIn('Specifications', extensions.__all__)
+		self.assertIs(extensions.Specifications, specifications)
+		self.assertNotIn('Specifications', specifications.__all__)
+		self.assertEqual(specifications.Specifications.__name__, 'Specifications')
 		return
 
 	def test_auth_schemes_with_same_kind_remain_distinct(self):
@@ -691,13 +764,13 @@ class SpecTests(TestCase):
 					return Response()
 			return Secured
 
-		app = Application(exts=(Specifications('/spec'),))
+		app = Application(exts=(SpecificationsJSON('/spec'),))
 		app.add(handler('/one', Header('X-One')))
 		app.add(handler('/two', Header('X-Two')))
 		app.add(handler('/oauth', OAuth2Password('/token')))
 		app.start()
 		self.addCleanup(app.stop)
-		spec = next(extension for extension in app.exts if isinstance(extension, Specifications))
+		spec = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 		document = spec.document()
 		schemes = document['components']['securitySchemes']
 		self.assertEqual(schemes['Header']['name'], 'X-One')
@@ -726,11 +799,31 @@ class SpecTests(TestCase):
 			def run(self, req):
 				return Response()
 
-		app = Application(exts=(Specifications('/spec'),))
+		app = Application(exts=(SpecificationsJSON('/spec'),))
 		app.add(Conflicting)
 		app.start()
 		self.addCleanup(app.stop)
-		spec = next(extension for extension in app.exts if isinstance(extension, Specifications))
+		spec = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 		with self.assertRaises(ValueError):
 			spec.document()
+		return
+
+	def test_yaml_serialization_errors_propagate(self):
+		specification = SpecificationsYAML('/spec')
+		app = Application(exts=(specification,))
+		app.start()
+		self.addCleanup(app.stop)
+		with patch.object(
+			specification,
+			'document',
+			side_effect=ValueError('document generation failed'),
+		):
+			with self.assertRaisesRegex(ValueError, 'document generation failed'):
+				app(request('/spec'))
+		with patch(
+			'RedStar.Extensions.Specifications.safe_dump',
+			side_effect=ValueError('serialization failed'),
+		):
+			with self.assertRaisesRegex(ValueError, 'serialization failed'):
+				app(request('/spec'))
 		return

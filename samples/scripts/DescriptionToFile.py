@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from json import dumps
 from pathlib import Path
 
-from RedStar.Extensions import Specifications
+from RedStar.Extensions import SpecificationsJSON
 from ..Sample import create_application
 
 
@@ -15,7 +15,7 @@ def main() -> None:
 	)
 	args = parser.parse_args()
 	app = create_application()
-	spec = next(extension for extension in app.exts if isinstance(extension, Specifications))
+	spec = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 	app.start()
 	try:
 		args.output.write_text(

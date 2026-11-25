@@ -14,6 +14,8 @@ from typing import (
 	Union,
 )
 
+from yaml import safe_dump
+
 from RedStar import (
 	Application,
 	Auth,
@@ -51,11 +53,12 @@ from .Utils.Routes import (
 )
 
 __all__ = (
-	'Specifications',
+	'SpecificationsJSON',
+	'SpecificationsYAML',
 )
 
 class Specifications(Extension):
-	"""Convert the current declarations in the shared route list to an OpenAPI 3.1 document."""
+	"""Build an OpenAPI 3.1 document from the current shared route declarations."""
 
 	logger = getLogger('Extension.Specifications')
 
@@ -329,9 +332,29 @@ class Specifications(Extension):
 		)
 		return document
 
+class SpecificationsJSON(Specifications):
+	"""Serialize the generated OpenAPI document as JSON."""
+
 	def __call__(
 		self,
 		request: Request,
 	) -> Response:
 		response = ResponseJSON(self.document())
+		return response
+
+class SpecificationsYAML(Specifications):
+	"""Serialize the generated OpenAPI document as YAML."""
+
+	def __call__(
+		self,
+		request: Request,
+	) -> Response:
+		response = Response(
+			body=safe_dump(
+				self.document(),
+				allow_unicode=True,
+				sort_keys=False,
+			).encode('utf-8'),
+			format='application/yaml',
+		)
 		return response

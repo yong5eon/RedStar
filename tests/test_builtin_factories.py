@@ -33,7 +33,8 @@ from RedStar.Extensions import (
 	MetricsCollector,
 	Metrics,
 	Ping,
-	Specifications,
+	SpecificationsJSON,
+	SpecificationsYAML,
 	Status,
 	Swagger,
 )
@@ -108,7 +109,8 @@ class BuiltinExtensionTests(TestCase):
 			lambda **hooks: FileSystem('/builtin', Mock(), **hooks),
 			lambda **hooks: Status('/builtin', metrics_uri='/metrics', **hooks),
 			lambda **hooks: Swagger('/builtin', spec_uri='/doc', **hooks),
-			lambda **hooks: Specifications('/builtin', **hooks),
+			lambda **hooks: SpecificationsJSON('/builtin', **hooks),
+			lambda **hooks: SpecificationsYAML('/builtin', **hooks),
 			lambda **hooks: Metrics('/builtin', **hooks),
 		):
 			startup = Mock(spec=ExtensionStartup, return_value=None)
@@ -296,7 +298,8 @@ class BuiltinExtensionTests(TestCase):
 			app.stop()
 		for extension in (
 			Ping,
-			Specifications,
+			SpecificationsJSON,
+			SpecificationsYAML,
 		):
 			with self.assertRaises(ValueError):
 				extension('/bad/:id')
@@ -380,13 +383,13 @@ class BuiltinExtensionTests(TestCase):
 
 	def test_specifications_live_routes_and_explicit_ownership(self):
 		app = Application(exts=(
-			Specifications('/doc'),
+			SpecificationsJSON('/doc'),
 			Ping('/ping'),
 		))
 		app.add(Echo)
 		app.start()
 		try:
-			spec = next(extension for extension in app.exts if isinstance(extension, Specifications))
+			spec = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 			self.assertIs(spec.application, app)
 			self.assertEqual(set(spec.document()['paths']), {'/echo/{id}'})
 			response = app(request('/doc'))
@@ -624,7 +627,7 @@ class BuiltinExtensionTests(TestCase):
 		app.start()
 		try:
 			self.assertEqual(app(request('/ping')).status, 200)
-			self.assertEqual(loads(app(request('/api/doc')).body)['openapi'], '3.1.0')
+			self.assertEqual(loads(app(request('/api/doc/json')).body)['openapi'], '3.1.0')
 		finally:
 			app.stop()
 		output = Mock()

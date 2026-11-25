@@ -15,8 +15,9 @@ Pass an ordered sequence of extension instances through `Application(exts=(...))
 | `Ping` | Simple health-check response |
 | `Status` | Browser-readable status page |
 | `Metrics` | Collect request counts, durations, and related metrics |
-| `Specifications` | Serve OpenAPI from route declarations |
-| `Swagger` | Provide a UI for browsing a `Specifications` document |
+| `SpecificationsJSON` | Serve an OpenAPI JSON document from route declarations |
+| `SpecificationsYAML` | Serve the same OpenAPI document as YAML |
+| `Swagger` | Provide a UI for browsing the configured OpenAPI document |
 | `File` | Respond with a configured file or resource |
 | `FileSystem` | Provide file-serving routes backed by a filesystem |
 
@@ -27,7 +28,8 @@ from RedStar import Application
 from RedStar.Extensions import (
   Metrics,
   Ping,
-  Specifications,
+  SpecificationsJSON,
+  SpecificationsYAML,
   Swagger,
 )
 
@@ -35,12 +37,13 @@ from RedStar.Extensions import (
 application = Application(exts=(
   Metrics('/metrics'),
   Ping('/ping'),
-  Specifications('/api/doc', title='Example API'),
-  Swagger('/swagger', spec_uri='/api/doc'),
+  SpecificationsJSON('/api/doc/json', title='Example API'),
+  SpecificationsYAML('/api/doc/yaml', title='Example API'),
+  Swagger('/swagger', spec_uri='/api/doc/json'),
 ))
 ```
 
-`Swagger` fetches the OpenAPI document from `spec_uri`, so `Specifications` must serve that path. The accuracy of the specification depends on handler `summary`, `description`, `tags`, input content, and response definitions. Consider whether access to status, metrics, and documentation endpoints should be restricted in production.
+`SpecificationsJSON` and `SpecificationsYAML` serve the same OpenAPI 3.1 document as `application/json` and `application/yaml`, respectively. `Swagger` fetches the document from `spec_uri`, so register one of the two extensions at that path. Replace existing `Specifications` uses with `SpecificationsJSON`, or use `SpecificationsYAML` when a YAML response is needed. The accuracy of the specification depends on handler `summary`, `description`, `tags`, input content, and response definitions. Consider whether access to status, metrics, and documentation endpoints should be restricted in production.
 
 An extension instance can belong to only one `Application`. Do not share an instance across applications; create a fresh instance for each one. A custom extension can implement the `Extension` contract and provide request, response, error, startup, and cleanup hooks.
 

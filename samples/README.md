@@ -10,7 +10,7 @@ Liquirizia.WSGI의 HTTP 시나리오를 단일 `RequestRunner`, `run(request)`, 
 
 일반 요청 처리 클래스는 `app.add(RunExample)`로 등록하고, 확장은 `Application(exts=(...))`로 등록한다.
 
-Swagger 확장은 `Swagger('/swagger', spec_uri='/api/doc')`처럼 명세 URI를 필수로 지정한다. `spec_uri`는 `/`로 시작하는 동일 출처 경로이며, `Specifications` 확장 자동 탐색이나 개수 제한 없이 해당 주소의 OpenAPI 문서를 사용한다.
+Swagger 확장은 `spec_uri`에 `/`로 시작하는 동일 출처 경로를 필수로 지정하며, `SpecificationsJSON` 또는 `SpecificationsYAML` 확장 자동 탐색 없이 해당 주소의 OpenAPI 문서를 사용한다. 이 샘플은 `Swagger('/swagger/json', spec_uri='/api/doc/json', title='RedStar Sample for JSON')`와 `Swagger('/swagger/yaml', spec_uri='/api/doc/yaml', title='RedStar Sample for YAML')`을 등록한다. JSON과 YAML 명세는 각각 `/api/doc/json`, `/api/doc/yaml`에서 제공한다. 이전 `Specifications` 사용은 `SpecificationsJSON`으로 바꿔야 한다.
 
 Status 확장도 `Status('/status', metrics_uri='/metrics')`처럼 동일 출처의 메트릭 URI를 필수로 지정하며, `Metrics`를 직접 참조하거나 자동 탐색하지 않는다. Status는 HTML만 제공하고 브라우저가 지정한 URI에 `Accept: application/json`으로 요청한다. Metrics는 해당 헤더가 있으면 JSON 스냅샷을, 그 외에는 기존 Prometheus 텍스트를 반환한다.
 
@@ -47,7 +47,7 @@ RequestRunner 샘플은 [runners/](runners/) 디렉터리에 기능별로 모았
 | `Filters/ToJPEG`, 파일 등록 | [Sample.py](Sample.py) | `/thumbs/request/sample`은 JPG, `/thumbs/response/sample`은 응답 필터로 PNG 교체; `/favicon.ico`, `/css/sample.css`, `/` |
 | `Model.py` | [runners/Requests.py](runners/Requests.py) | 기존 JSON 결과 구조를 딕셔너리로 생성; 추가 스키마는 Content·ResponseSpecification으로 선언 |
 | `SampleHandler` 출력 | [Sample.py](Sample.py) | 표준 로깅과 서버 오류·연결 종료 로깅 사용 |
-| `RunGetDocument` | [Sample.py](Sample.py) | Specifications 확장의 GET `/api/doc`에서 OpenAPI 3.1 제공 |
+| `RunGetDocument` | [Sample.py](Sample.py) | SpecificationsJSON·SpecificationsYAML 확장의 GET `/api/doc/json`, `/api/doc/yaml`에서 OpenAPI 3.1 제공 |
 | `scripts/DescriptionToFile` | [DescriptionToFile.py](scripts/DescriptionToFile.py) | 같은 Application의 OpenAPI 문서를 파일로 저장 |
 
 다음 항목은 이번 실행 샘플에 포함하지 않는다.
@@ -74,7 +74,7 @@ curl.exe -X POST -H "Content-Type: application/json" --data-binary '{"a":2,"b":3
 
 GET은 `data.ret=12432`, POST는 `data.ret=12995`를 반환한다. 경로 값은 100 초과, 쿼리 `a`는 5 초과·`b`는 9 초과가 필요하다. 본문 `a`는 5 미만·`b`는 9 미만이다. PUT·DELETE도 같은 JSON 입력을 받고 각각 기존 곱셈·뺄셈 계산을 수행한다. 기본 메시지는 `안녕`이다.
 
-`/swagger`에서 계산 API를 펼치면 경로·쿼리 입력 제약, 이름 있는 `CalculationInput`·`CalculationResult` 스키마와 JSON 본문 예제를 확인할 수 있다. Try it out에서 경로 `101`·`102`, 쿼리 `6`·`10`, POST 본문 `{"a":2,"b":3}`을 입력하고 Execute를 누르면 `12995` 계산 결과를 확인할 수 있다. Swagger UI의 JS·CSS는 CDN에서 불러오므로 브라우저의 인터넷 연결이 필요하다.
+`/swagger/json`에서 계산 API를 펼치면 경로·쿼리 입력 제약, 이름 있는 `CalculationInput`·`CalculationResult` 스키마와 JSON 본문 예제를 확인할 수 있다. Try it out에서 경로 `101`·`102`, 쿼리 `6`·`10`, POST 본문 `{"a":2,"b":3}`을 입력하고 Execute를 누르면 `12995` 계산 결과를 확인할 수 있다. `/swagger/yaml`은 YAML 명세를 사용한다. Swagger UI의 JS·CSS는 CDN에서 불러오므로 브라우저의 인터넷 연결이 필요하다.
 
 ```powershell
 curl.exe -X POST -H "Content-Type: application/json" --data-binary '[1,2,3]' http://127.0.0.1:8000/api/content/array
@@ -154,8 +154,10 @@ curl.exe -o sample.png http://127.0.0.1:8000/thumbs/response/sample
 | --- | --- |
 | `/metrics` | HTTP 요청·전송 완료 Metrics |
 | `/status` | Status: 실시간 지표 UI; `/metrics`의 JSON 스냅샷 조회 |
-| `/api/doc` | OpenAPI 3.1 JSON |
-| `/swagger` | CDN 기반 Swagger UI·요청/응답 명세·Try it out |
+| `/api/doc/json` | OpenAPI 3.1 JSON |
+| `/api/doc/yaml` | OpenAPI 3.1 YAML |
+| `/swagger/json` | JSON 명세를 사용하는 CDN 기반 Swagger UI·Try it out |
+| `/swagger/yaml` | YAML 명세를 사용하는 CDN 기반 Swagger UI·Try it out |
 | `/health` | Ping: 실행 상태 확인 |
 
 ```powershell

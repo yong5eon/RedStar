@@ -6,7 +6,7 @@
 
 A single `py-wsgi-redstar` distribution contains the core, the built-in Python server and the Gunicorn and Uvicorn adapter sources. The same files are installed whether or not extras are given, and the public Python import path is `RedStar` (the PyPI distribution name and the import name differ). No compatibility alias is provided for the former name.
 
-The `Gunicorn` and `Uvicorn` extras only install the external dependencies those adapters need.
+`PyYAML>=6` is installed as a required dependency for YAML OpenAPI responses. The `Gunicorn` and `Uvicorn` extras only install the external dependencies those adapters need.
 
 | Extra | Additional external dependencies |
 | --- | --- |
@@ -17,7 +17,7 @@ Metrics use the `redstar_*` names, and OpenAPI vendor extensions use the `x-reds
 
 ```mermaid
 flowchart LR
-  A["Install py-wsgi-redstar[Uvicorn]"] --> B["py-wsgi-redstar distribution: core · Python server · all adapter sources"]
+  A["Install py-wsgi-redstar[Uvicorn]"] --> B["py-wsgi-redstar distribution: core · PyYAML · Python server · all adapter sources"]
   A --> C["uvicorn · a2wsgi"]
 ```
 

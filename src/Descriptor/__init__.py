@@ -3,6 +3,7 @@ from collections.abc import (
 	Sequence,
 )
 from dataclasses import is_dataclass
+from enum import Enum
 from json import (
 	dumps,
 	loads,
@@ -111,6 +112,8 @@ def schema_value(
 		),
 	):
 		return [schema_value(item) for item in value]
+	if isinstance(value, Enum):
+		return schema_value(value.value)
 	if value is None or isinstance(
 		value,
 		(
