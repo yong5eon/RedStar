@@ -238,13 +238,19 @@ def create_application() -> Application:
 				'/api/doc/json',
 				title='RedStar HTTP Sample',
 			),
+			Swagger(
+				'/swagger/json',
+				spec_uri='/api/doc/json',
+				title='RedStar Sample for JSON',
+			),
 			SpecificationsYAML(
 				'/api/doc/yaml',
 				title='RedStar HTTP Sample',
 			),
 			Swagger(
-				'/swagger',
-				spec_uri='/api/doc/json',
+				'/swagger/yaml',
+				spec_uri='/api/doc/yaml',
+				title='RedStar Sample for YAML',
 			),
 			Ping('/ping'),
 			File(
