@@ -627,7 +627,7 @@ class BuiltinExtensionTests(TestCase):
 		app.start()
 		try:
 			self.assertEqual(app(request('/ping')).status, 200)
-			self.assertEqual(loads(app(request('/api/doc')).body)['openapi'], '3.1.0')
+			self.assertEqual(loads(app(request('/api/doc/json')).body)['openapi'], '3.1.0')
 		finally:
 			app.stop()
 		output = Mock()
