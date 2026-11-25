@@ -62,6 +62,8 @@ If there are no error hooks, or all hooks in the applicable scopes return `None`
 
 `Error`, `ClientError`, and `ServerError` represent an HTTP status and error reason. If a user error hook returns a `Response`, that hook determines its status, headers, and body; the adapter does not replace it with a default error response.
 
+When the adapter converts an `Error` into a default HTTP response, it logs `ClientError` at `WARNING` and every other `Error` at `ERROR`. The log record retains `request_id` when available, and the message retains the HTTP status code without including the request URI, query string, or error reason. This logging does not change the response status, headers, or body.
+
 ## Application error-response example
 
 The following example logs unexpected server exceptions and handles them with a response that does not reveal internal details. It returns `None` for `ClientError` so the adapter retains its existing status and error-body behavior.

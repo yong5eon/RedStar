@@ -2,7 +2,10 @@ from time import monotonic
 from typing import Callable
 
 from ..Application import Application
-from ..Error import Error
+from ..Error import (
+	ClientError,
+	Error,
+)
 from ..IO.RequestReader import ClientDisconnected
 from ..IO.ResponseWriter import ResponseWriter
 from ..Logger import getLogger
@@ -36,11 +39,18 @@ def handle_request(
 		except Error as error:
 			if writer.started:
 				raise
-			logger.debug(
-				'HTTP error response selected: status=%s',
-				error.status,
-				id=request.id if request is not None else None,
-			)
+			if isinstance(error, ClientError):
+				logger.warning(
+					'HTTP error response selected: status=%s',
+					error.status,
+					id=request.id if request is not None else None,
+				)
+			else:
+				logger.error(
+					'HTTP error response selected: status=%s',
+					error.status,
+					id=request.id if request is not None else None,
+				)
 			response = Response(
 				status=error.status,
 				headers=error.headers,
