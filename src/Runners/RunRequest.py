@@ -1,4 +1,3 @@
-from logging import getLogger
 from typing import (
 	Optional,
 	Type,
@@ -9,6 +8,7 @@ from ..RequestRunner import (
 	RequestRunner,
 )
 from ..Request import Request
+from ..Logger import getLogger
 from ..Response import (
 	Response,
 	close_bodies,
@@ -113,7 +113,7 @@ class RunRequest:
 				if replaced:
 					result.id = previous_id
 				if replaced or previous_id != result.id:
-					self.logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, result.id)
+					self.logger.debug('Request replaced: previous_request_id=%s', previous_id, id=result.id)
 				request = result
 			writer = request.response_writer
 			if writer is not None:

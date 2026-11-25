@@ -1,12 +1,13 @@
 from email.message import Message
 from http import HTTPStatus
-from logging import getLogger
 from typing import (
 	Iterable,
 	Mapping,
 	Optional,
 	Union,
 )
+
+from .Logger import getLogger
 
 __all__ = (
 	'Response',

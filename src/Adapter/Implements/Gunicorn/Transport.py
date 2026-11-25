@@ -3,11 +3,13 @@ from typing import (
 	Mapping,
 )
 
-from ....IO.Readers.ChunkedStream import ChunkedStream
-from ....IO.RequestReader import RequestReader
-from ....IO.ResponseWriter import ResponseWriter
-from ....Response import Response
-from ...WSGI import (
+from RedStar import (
+	RequestReader,
+	Response,
+	ResponseWriter,
+)
+from RedStar.IO.Readers import ChunkedStream
+from RedStar.Adapter.WSGI import (
 	StartResponse,
 	WSGIApplication,
 	WSGIResponseWriter,

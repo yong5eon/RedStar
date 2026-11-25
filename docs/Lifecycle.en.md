@@ -136,6 +136,14 @@ class Hello(
 
 `RequestRunner` request hooks run after the handler is created and route-specific validation is complete. Response hooks run after `run()` returns a `Response` and before CORS processing and transmission. This example adds the request ID to the route response. Multiple hooks run in registration order, so each hook should accept the request or response shape passed by the previous hook.
 
+## Request IDs and logs
+
+RedStar logs include `LogRecord.request_id` when a request ID is explicitly supplied. The ID is no longer duplicated as a `request_id=...` string in the message, so configurations that parse messages should use the record field instead. Not every log has a request ID.
+
+Application code can use `from RedStar import getLogger` and optionally pass an ID as in `logger.info('message', id=request.id)`. Logs without an ID and external records created with standard `logging.getLogger` may not have this field. A formatter using `%(request_id)s` must therefore provide a fallback for records without it. The `LoggingFormatter` in `samples/Sample.py` demonstrates this by copying the record, displaying a blank when the value is missing or `None`, and limiting displayed IDs to 16 characters. The library does not automatically configure the root logger or user handlers.
+
+When replacing a RedStar class's `logger`, use the logger returned by `RedStar.getLogger` rather than a standard logger. Request logs use the `id` argument, which standard loggers do not accept.
+
 ## Hook implementation considerations
 
 - A hook that replaces a request or response should return the object that downstream processing must use.

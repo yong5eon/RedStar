@@ -1,3 +1,7 @@
+from .Logger import (
+	Logger,
+	getLogger,
+)
 from .Application import (
 	Application,
 	ApplicationStartup,
@@ -45,6 +49,8 @@ from .ResponseSpecification import ResponseSpecification
 from .IO.ResponseWriter import ResponseWriter
 
 __all__ = (
+	'Logger',
+	'getLogger',
 	'Application',
 	'ApplicationStartup',
 	'ApplicationCleanup',

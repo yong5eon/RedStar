@@ -1,13 +1,15 @@
-from logging import getLogger
 from socket import socket
 from typing import (
 	Any,
 	Optional,
 )
 
-from ....Application import Application
-from ....Startup import startup
-from ...Server import Server as ServerAdapter
+from RedStar import (
+	Application,
+	getLogger,
+)
+from RedStar.Adapter import Server as ServerAdapter
+from RedStar.Startup import startup
 
 __all__ = (
 	'Server',

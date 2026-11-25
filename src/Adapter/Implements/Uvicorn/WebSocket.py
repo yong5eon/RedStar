@@ -9,7 +9,6 @@ from asyncio import (
 )
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
-from logging import getLogger
 from socket import socket
 from socketserver import BaseServer
 from typing import (
@@ -17,10 +16,13 @@ from typing import (
 	cast,
 )
 
-from ....Application import Application
-from ....IO.RequestReader import ClientDisconnected
-from ....IO.WebSocket.WebSocketFrame import WebSocketFrame
-from ..Python.Server import ServerRequestHandler
+from RedStar import (
+	Application,
+	getLogger,
+)
+from RedStar.Adapter.Implements.Python.Server import ServerRequestHandler
+from RedStar.IO.RequestReader import ClientDisconnected
+from RedStar.IO.WebSocket import WebSocketFrame
 from .Portal import Portal
 
 __all__ = (

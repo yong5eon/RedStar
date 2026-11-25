@@ -33,6 +33,7 @@ from RedStar import (
 	ApplicationRequest,
 	ApplicationRequestError,
 	Extension,
+	Logger,
 	Request,
 	RequestRunner,
 	RequestRunnerRequest,
@@ -40,6 +41,7 @@ from RedStar import (
 	RequestRunnerRequestResponse,
 	Response,
 	ResponseWriter,
+	getLogger as get_redstar_logger,
 )
 from RedStar.Adapter.Implements.Gunicorn import Server as GunicornServer
 from RedStar.Adapter.Implements.Python.Server import (
@@ -113,6 +115,54 @@ def transmit(
 
 
 class LoggingTests(TestCase):
+	def test_logger_accepts_optional_id_and_preserves_logging_options(self):
+		logger = get_redstar_logger('Test.OptionalID')
+		self.assertIsInstance(logger, Logger)
+		extra = {'operation': 'probe'}
+		with self.assertLogs('Test.OptionalID', level=DEBUG) as logs:
+			for method in (logger.debug, logger.info, logger.warning, logger.error):
+				method('value=%s', 'example', id='request-123', extra=extra)
+				method('without id')
+			logger.info('explicit extra', extra={'request_id': 'extra-id'})
+			try:
+				raise ValueError('failure')
+			except ValueError:
+				logger.exception('exception', id='request-123')
+		for record in logs.records[:8:2]:
+			self.assertEqual(record.request_id, 'request-123')
+			self.assertEqual(record.operation, 'probe')
+			self.assertEqual(record.getMessage(), 'value=example')
+		for record in logs.records[1:8:2]:
+			self.assertFalse(hasattr(record, 'request_id'))
+		self.assertEqual(extra, {'operation': 'probe'})
+		self.assertEqual(logs.records[-2].request_id, 'extra-id')
+		self.assertEqual(logs.records[-1].request_id, 'request-123')
+		self.assertIsNotNone(logs.records[-1].exc_info)
+		return
+
+	def test_request_logs_do_not_automatically_add_id(self):
+		class Observe(
+			Echo,
+			method='GET',
+			url='/sample/:id',
+		):
+			def run(
+				self,
+				value,
+			):
+				Application.logger.info('without explicit id')
+				Application.logger.info('with explicit id', id=value.id)
+				return Response()
+
+		app = Application()
+		app.add(Observe)
+		value = request()
+		with self.assertLogs('Application', level=INFO) as logs:
+			app(value)
+		self.assertFalse(hasattr(logs.records[0], 'request_id'))
+		self.assertEqual(logs.records[1].request_id, value.id)
+		return
+
 	def test_class_loggers_and_explicit_override(self):
 		for cls, name in (
 			(
@@ -279,7 +329,7 @@ class LoggingTests(TestCase):
 		self.assertIn('Application request received', debug_records[0].getMessage())
 		return
 
-	def test_full_request_has_safe_context_and_one_transmission_summary(self):
+	def test_full_request_has_id_and_one_transmission_summary(self):
 		app = Application()
 		app.add(Echo)
 		value = request()
@@ -293,7 +343,8 @@ class LoggingTests(TestCase):
 		summaries = [record for record in logs.records if 'HTTP transmission result' in record.getMessage()]
 		self.assertEqual(len(summaries), 1)
 		self.assertEqual(summaries[0].levelno, INFO)
-		self.assertIn('request_id=' + value.id, summaries[0].getMessage())
+		self.assertTrue(all(record.request_id == value.id for record in logs.records))
+		self.assertNotIn('request_id=', summaries[0].getMessage())
 		self.assertIn('status=200 outcome=completed', summaries[0].getMessage())
 		self.assertIn("route='/sample/:id'", debug_records[1].getMessage())
 		for private in (
@@ -336,20 +387,14 @@ class LoggingTests(TestCase):
 				)
 				with self.assertLogs(level=DEBUG) as logs:
 					transmit(app, value)
-				messages = [
-					record.getMessage()
-					for record in logs.records
-					if 'request_id=' in record.getMessage()
-				]
-				self.assertGreaterEqual(len(messages), 3)
+				self.assertGreaterEqual(len(logs.records), 3)
 				self.assertTrue(all(
-					'request_id=' + (expected_id if expected_id is not None else value.id)
-					in message
-					for message in messages
+					record.request_id == (expected_id if expected_id is not None else value.id)
+					for record in logs.records
 				))
 				if expected_id is None:
 					self.assertRegex(value.id, r'^[0-9a-f]{32}$')
-					self.assertNotIn(invalid_request_id, '\n'.join(messages))
+					self.assertNotIn(invalid_request_id, '\n'.join(logs.output))
 		return
 
 	def test_hook_order_and_request_replacement_are_observable(self):
@@ -418,7 +463,7 @@ class LoggingTests(TestCase):
 		messages = '\n'.join(logs.output)
 		self.assertEqual(replacement.replacement.id, value.id)
 		self.assertIn(
-			'Request replaced: previous_request_id=' + value.id + ' request_id=' + value.id,
+			'Request replaced: previous_request_id=' + value.id,
 			messages,
 		)
 		self.assertEqual(events, [
@@ -431,8 +476,8 @@ class LoggingTests(TestCase):
 			for record in logs.records
 			if record.levelno == DEBUG
 		))
-		summary = next(record.getMessage() for record in logs.records if 'HTTP transmission result' in record.getMessage())
-		self.assertIn('request_id=' + value.id, summary)
+		summary = next(record for record in logs.records if 'HTTP transmission result' in record.getMessage())
+		self.assertEqual(summary.request_id, value.id)
 		self.assertNotIn('replaced-private', messages)
 		return
 
@@ -590,9 +635,10 @@ class LoggingTests(TestCase):
 						Mock(side_effect=ClientDisconnected()),
 						value.writer,
 					)
-		summary = next(record.getMessage() for record in logs.records if 'HTTP transmission result' in record.getMessage())
-		self.assertIn('request_id=None method=None status=None', summary)
-		self.assertIn('outcome=disconnected duration=2.500000', summary)
+		summary = next(record for record in logs.records if 'HTTP transmission result' in record.getMessage())
+		self.assertFalse(hasattr(summary, 'request_id'))
+		self.assertIn('method=None status=None', summary.getMessage())
+		self.assertIn('outcome=disconnected duration=2.500000', summary.getMessage())
 		return
 
 	def test_parallel_requests_keep_route_and_id_separate(self):
@@ -627,10 +673,10 @@ class LoggingTests(TestCase):
 		with self.assertLogs(level=DEBUG) as logs:
 			with ThreadPoolExecutor(max_workers=2) as executor:
 				list(executor.map(lambda value: transmit(app, value), values))
-		summaries = [record.getMessage() for record in logs.records if 'HTTP transmission result' in record.getMessage()]
+		summaries = [record for record in logs.records if 'HTTP transmission result' in record.getMessage()]
 		self.assertEqual(len(summaries), 2)
 		for value in values:
-			self.assertEqual(sum('request_id=' + value.id in text for text in summaries), 1)
+			self.assertEqual(sum(record.request_id == value.id for record in summaries), 1)
 		self.assertNotIn('secret-', '\n'.join(logs.output))
 		return
 
@@ -679,7 +725,7 @@ class LoggingTests(TestCase):
 		with self.assertLogs('Server', level=INFO) as logs:
 			transmit(outer, value)
 		self.assertEqual(len(logs.records), 1)
-		self.assertIn('request_id=' + value.id, logs.records[0].getMessage())
+		self.assertEqual(logs.records[0].request_id, value.id)
 		self.assertNotIn('private-', logs.records[0].getMessage())
 		return
 
@@ -839,6 +885,7 @@ class LoggingTests(TestCase):
 				))
 		self.assertIn('WebSocket upgraded', '\n'.join(logs.output))
 		self.assertIn('WebSocket closed', '\n'.join(logs.output))
+		self.assertTrue(all(record.request_id == value.id for record in logs.records))
 		self.assertNotIn('private-', '\n'.join(logs.output))
 		other = WebSocket(request('/'), limit=16)
 		with patch.object(other.handshake, 'response', return_value=Response(status=101)):
@@ -846,6 +893,7 @@ class LoggingTests(TestCase):
 		with self.assertLogs('Request.WebSocket', level=DEBUG) as logs:
 			other.fail(WebSocketError(1002, 'private-protocol-reason'))
 		self.assertEqual(logs.records[0].levelno, WARNING)
+		self.assertEqual(logs.records[0].request_id, other.request.id)
 		self.assertIn('code=1002', logs.records[0].getMessage())
 		self.assertNotIn('private-protocol-reason', '\n'.join(logs.output))
 		return
@@ -949,7 +997,7 @@ class LoggingTests(TestCase):
 				'Request.WebSocket',
 			):
 				header = name.split('.', 1)[0]
-				self.assertIn(f'{header:<12} source={name}', text)
+				self.assertIn(f'{header:<12} {"":<16} source={name}', text)
 			for name in (
 				'SampleExtra',
 				'ApplicationExtra',

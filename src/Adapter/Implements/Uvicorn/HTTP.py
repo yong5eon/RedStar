@@ -7,7 +7,6 @@ from asyncio import (
 )
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
-from logging import getLogger
 from typing import Optional
 from a2wsgi.asgi_typing import (
 	Receive,
@@ -19,9 +18,12 @@ from a2wsgi.wsgi import (
 	build_environ,
 )
 
-from ....Application import Application
-from ....IO.RequestReader import ClientDisconnected
-from ...WSGI import WSGIApplication
+from RedStar import (
+	Application,
+	getLogger,
+)
+from RedStar.Adapter.WSGI import WSGIApplication
+from RedStar.IO.RequestReader import ClientDisconnected
 from .Portal import Portal
 
 __all__ = (

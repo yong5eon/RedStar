@@ -4,7 +4,6 @@ from abc import (
 )
 from dataclasses import dataclass
 from inspect import isabstract
-from logging import getLogger
 from threading import (
 	Event,
 	RLock,
@@ -21,6 +20,7 @@ from typing import (
 from weakref import ref
 
 from .Error import ClientError
+from .Logger import getLogger
 from .RequestRunner import RequestRunner
 from .Request import Request
 from .Response import (
@@ -604,37 +604,37 @@ class Application:
 	) -> Optional[Response]:
 		"""Select and execute the route matching the request."""
 		if request.method == 'OPTIONS' and request.uri == '*':
-			self.logger.debug('OPTIONS wildcard selected: request_id=%s', request.id)
+			self.logger.debug('OPTIONS wildcard selected', id=request.id)
 			return RunOptions().run(
 				request,
 				self.router,
 			)
 		matches = self.router.matches(request.path)
 		if not matches:
-			self.logger.debug('Route not found: request_id=%s', request.id)
+			self.logger.debug('Route not found', id=request.id)
 			raise ClientError(
 				'No matching route',
 				status=404,
 			)
 		if request.method == 'OPTIONS' and 'OPTIONS' not in matches:
-			self.logger.debug('Automatic OPTIONS selected: request_id=%s', request.id)
+			self.logger.debug('Automatic OPTIONS selected', id=request.id)
 			return RunOptions().run(
 				request,
 				self.router,
 			)
 		if request.method not in matches:
-			self.logger.debug('Method not allowed: request_id=%s', request.id)
+			self.logger.debug('Method not allowed', id=request.id)
 			raise ClientError(
 				'Method not allowed',
 				status=405,
 			)
 		route, parameters = matches[request.method]
 		self.logger.debug(
-			'Route selected: request_id=%s method=%s route=%s handler=%s',
-			request.id,
+			'Route selected: method=%s route=%s handler=%s',
 			ascii(request.method[:32]),
 			ascii(route.url[:256]),
 			route.object.__module__ + '.' + route.object.__qualname__,
+			id=request.id,
 		)
 		if (request.reader.chunked or request.reader.remaining) and request.format is None:
 			raise ClientError('Content-Type is required for requests with a body')
@@ -653,7 +653,7 @@ class Application:
 		request: Request,
 	) -> Optional[Response]:
 		self.ensure_not_in_hook()
-		self.logger.debug('Application request received: request_id=%s method=%s', request.id, ascii(request.method[:32]))
+		self.logger.debug('Application request received: method=%s', ascii(request.method[:32]), id=request.id)
 		request_hooks, response_hooks, error_hooks = self.get_request_hook_snapshot()
 		previous_request = getattr(self.hook_context, 'request', None)
 		self.hook_context.request = request
@@ -671,7 +671,7 @@ class Application:
 				if replaced:
 					request.id = previous_id
 				if replaced or previous_id != request.id:
-					self.logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, request.id)
+					self.logger.debug('Request replaced: previous_request_id=%s', previous_id, id=request.id)
 			response = self.dispatch_request(request)
 			for hook in response_hooks:
 				previous = response

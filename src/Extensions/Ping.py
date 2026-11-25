@@ -1,22 +1,22 @@
-from logging import getLogger
 from typing import (
 	Optional,
 	Sequence,
 	Union,
 )
 
-from ..Application import Application
-from ..Extension import (
+from RedStar import (
+	Application,
 	Extension,
 	ExtensionCleanup,
 	ExtensionRequest,
 	ExtensionRequestError,
 	ExtensionRequestResponse,
 	ExtensionStartup,
+	Request,
+	Response,
+	getLogger,
 )
-from ..Request import Request
-from ..Response import Response
-from ..Responses import ResponseJSON
+from RedStar.Responses import ResponseJSON
 from .Utils.Routes import (
 	http_routes,
 	validate_path,
@@ -86,7 +86,7 @@ class Ping(Extension):
 		request: Request,
 	) -> Response:
 		running = self.application.running
-		self.logger.debug('Application state observed: request_id=%s running=%s', request.id, running)
+		self.logger.debug('Application state observed: running=%s', running, id=request.id)
 		return ResponseJSON(
 			{'status': 'running' if running else 'stopped'},
 			status=200 if running else 503,

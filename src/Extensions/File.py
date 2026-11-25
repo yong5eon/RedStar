@@ -1,22 +1,22 @@
 from pathlib import Path
-from logging import getLogger
 from typing import (
 	Optional,
 	Sequence,
 	Union,
 )
 
-from ..Application import Application
-from ..Extension import (
+from RedStar import (
+	Application,
 	Extension,
 	ExtensionCleanup,
 	ExtensionRequest,
 	ExtensionRequestError,
 	ExtensionRequestResponse,
 	ExtensionStartup,
+	Request,
+	getLogger,
 )
-from ..Request import Request
-from ..Responses import ResponseFile
+from RedStar.Responses import ResponseFile
 from .Utils.Routes import (
 	http_routes,
 	validate_path,

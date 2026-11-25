@@ -1,10 +1,10 @@
-from logging import getLogger
 from typing import (
 	Optional,
 	Type,
 )
 
 from ..Extension import Extension
+from ..Logger import getLogger
 from ..Request import Request
 from ..RequestRunner import RequestRunner
 from ..Response import (
@@ -36,7 +36,7 @@ def run_extension(
 			if replaced:
 				result.id = previous_id
 			if replaced or previous_id != result.id:
-				logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, result.id)
+				logger.debug('Request replaced: previous_request_id=%s', previous_id, id=result.id)
 			request = result
 		response = extension(request)
 		if response is not None and not isinstance(response, Response):

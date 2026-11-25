@@ -3,7 +3,7 @@ from importlib.resources import files
 from re import sub
 from typing import Optional
 
-from ...Response import Response
+from RedStar import Response
 
 __all__ = (
 	'page',

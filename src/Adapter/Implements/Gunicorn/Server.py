@@ -1,13 +1,15 @@
 from os import name
-from logging import getLogger
 from typing import (
 	Any,
 	Union,
 )
 
-from ....Application import Application
-from ....Startup import startup
-from ...Server import Server as ServerAdapter
+from RedStar import (
+	Application,
+	getLogger,
+)
+from RedStar.Adapter import Server as ServerAdapter
+from RedStar.Startup import startup
 from .Transport import (
 	Body,
 	GunicornApplication as RequestApplication,

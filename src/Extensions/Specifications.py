@@ -3,7 +3,6 @@ from collections.abc import (
 	Sequence,
 )
 from copy import deepcopy
-from logging import getLogger
 from time import monotonic
 from re import (
 	fullmatch,
@@ -15,37 +14,36 @@ from typing import (
 	Union,
 )
 
-from ..Application import Application
-from ..Body import Body
-from ..Content import Content
-from ..Descriptor import (
-	Schema,
-	schema_value,
-)
-from ..Extension import (
+from RedStar import (
+	Application,
+	Auth,
+	Body,
+	Content,
 	Extension,
 	ExtensionCleanup,
 	ExtensionRequest,
 	ExtensionRequestError,
 	ExtensionRequestResponse,
 	ExtensionStartup,
+	Headers,
+	Parameters,
+	QueryString,
+	Request,
+	Response,
+	ResponseSpecification,
+	getLogger,
 )
-from ..Request import Request
-from ..IO.Readers import (
+from RedStar.Descriptor import (
+	Schema,
+	schema_value,
+)
+from RedStar.IO.Readers import (
 	ByteStringContentReader,
 	FormUrlEncodedContentReader,
 	JavaScriptObjectNotationContentReader,
 	TextContentReader,
 )
-from ..Response import Response
-from ..ResponseSpecification import ResponseSpecification
-from ..Responses import ResponseJSON
-from ..Validators import (
-	Auth,
-	Headers,
-	Parameters,
-	QueryString,
-)
+from RedStar.Responses import ResponseJSON
 from .FileSystem import FileSystemRoute
 from .Utils.Routes import (
 	http_routes,

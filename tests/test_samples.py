@@ -109,8 +109,13 @@ class SampleTests(TestCase):
 					None,
 				)
 				output = formatter.format(record)
-				self.assertIn(f'{header:<12} sample message', output)
+				self.assertIn(f'{header:<12} {"":<16} sample message', output)
 				self.assertNotIn(name, output)
+				self.assertFalse(hasattr(record, 'request_id'))
+				record.request_id = 'request-123'
+				self.assertIn(f'{header:<12} {"request-123":<16} sample message', formatter.format(record))
+				record.request_id = 'abcdefghijklmnopq'
+				self.assertIn(f'{header:<12} abcdefghijklmnop sample message', formatter.format(record))
 		return
 
 	def test_welcome_page_and_styles_are_served(self):

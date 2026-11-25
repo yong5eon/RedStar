@@ -2,21 +2,23 @@ from http.server import (
 	BaseHTTPRequestHandler,
 	ThreadingHTTPServer,
 )
-from logging import getLogger
 from typing import (
 	Optional,
 	Union,
 )
 
-from ....Application import Application
-from ....Error import Error
-from ....Request import Request
-from ....IO.RequestReader import RequestReader
-from ....Response import Response
-from ....IO.ResponseWriter import ResponseWriter
-from ....Startup import startup
-from ...Server import Server as ServerAdapter
-from ...RequestHandler import handle_request
+from RedStar import (
+	Application,
+	Error,
+	Request,
+	RequestReader,
+	Response,
+	ResponseWriter,
+	getLogger,
+)
+from RedStar.Adapter import Server as ServerAdapter
+from RedStar.Adapter.RequestHandler import handle_request
+from RedStar.Startup import startup
 
 __all__ = (
 	'Server',
