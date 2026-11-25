@@ -371,9 +371,22 @@ class SampleTests(TestCase):
 			self.assertEqual(status, 200)
 			self.assertEqual(headers['Content-Type'], 'application/yaml')
 			self.assertEqual(safe_load(data)['openapi'], '3.1.0')
-			status, headers, data = self.call(address, 'GET', '/swagger')
-			self.assertEqual(status, 200)
-			self.assertIn(b'data-spec-url="/api/doc/json"', data)
+			for url, spec_uri, title in (
+				(
+					'/swagger/json',
+					'/api/doc/json',
+					'RedStar Sample for JSON',
+				),
+				(
+					'/swagger/yaml',
+					'/api/doc/yaml',
+					'RedStar Sample for YAML',
+				),
+			):
+				status, headers, data = self.call(address, 'GET', url)
+				self.assertEqual(status, 200, data)
+				self.assertIn(f'data-spec-url="{spec_uri}"'.encode(), data)
+				self.assertIn(f'<title>{title} Swagger UI</title>'.encode(), data)
 			self.assertEqual(self.call(address, 'GET', '/console')[0], 404)
 		return
 
