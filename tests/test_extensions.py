@@ -716,7 +716,11 @@ class SpecTests(TestCase):
 		self.assertIn('Model', document['components']['schemas'])
 		self.assertEqual(document['x-redstar-operations'][0]['method'], 'CUSTOM')
 		json_response = app(request('/spec'))
-		yaml_response = app(request('/spec.yaml'))
+		with patch(
+			'RedStar.Extensions.Specifications.ResponseJSON',
+			side_effect=AssertionError('YAML serialization must not use a JSON response'),
+		):
+			yaml_response = app(request('/spec.yaml'))
 		assert isinstance(json_response, Response)
 		assert isinstance(yaml_response, Response)
 		self.assertIsInstance(json_response.body, bytes)
@@ -725,7 +729,7 @@ class SpecTests(TestCase):
 		self.assertEqual(yaml_response.header('Content-Type'), 'application/yaml')
 		self.assertIn('한글'.encode('utf-8'), yaml_response.body)
 		yaml_document = safe_load(yaml_response.body)
-		self.assertEqual(yaml_document, loads(json_response.body))
+		self.assertEqual(yaml_document, document)
 		content = yaml_document['paths']['/items/{id}']['post']['requestBody']['content']
 		example = content['application/json']['example']
 		self.assertEqual(example, expected_example)
@@ -816,7 +820,10 @@ class SpecTests(TestCase):
 		):
 			with self.assertRaisesRegex(ValueError, 'document generation failed'):
 				app(request('/spec'))
-		with patch('yaml.safe_dump', side_effect=ValueError('serialization failed')):
+		with patch(
+			'RedStar.Extensions.Specifications.safe_dump',
+			side_effect=ValueError('serialization failed'),
+		):
 			with self.assertRaisesRegex(ValueError, 'serialization failed'):
 				app(request('/spec'))
 		return

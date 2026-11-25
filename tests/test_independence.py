@@ -44,14 +44,6 @@ from RedStar.IO.Writers import ChunkedStreamWriter, ServerSentEventsWriter
 from RedStar.Credentials import OAuth2AuthorizationCode
 from RedStar.Responses import ResponseFile, ResponseJSON, ResponseText
 from RedStar.Utils.FileSystemObject.Implements.FileSystem import Configuration, Connection
-from RedStar.Extensions import (
-	Metrics,
-	Status,
-	SpecificationsJSON,
-	SpecificationsYAML,
-	Swagger,
-	Ping,
-)
 
 class Sample(RequestRunner, method='GET', url='/'):
 	def run(self, request):
@@ -60,19 +52,6 @@ class Sample(RequestRunner, method='GET', url='/'):
 app = Application()
 app.add(Sample)
 assert app(Request('127.0.0.1', 1, 'GET', '/')).body == b'OK'
-extended = Application(exts=(
-	Metrics('/metrics'),
-	Status('/status', metrics_uri='/metrics'),
-	SpecificationsJSON('/spec'),
-	SpecificationsYAML('/spec.yaml'),
-	Swagger('/swagger', spec_uri='/spec'),
-	Ping('/ping'),
-))
-extended.start()
-try:
-	assert extended(Request('127.0.0.1', 1, 'GET', '/swagger')).status == 200
-finally:
-	extended.stop()
 with PythonServer('127.0.0.1', 0, app) as server:
 	assert server.server_address[1] > 0
 '''

@@ -3,7 +3,6 @@ from collections.abc import (
 	Sequence,
 )
 from copy import deepcopy
-from json import loads
 from time import monotonic
 from re import (
 	fullmatch,
@@ -14,6 +13,8 @@ from typing import (
 	Optional,
 	Union,
 )
+
+from yaml import safe_dump
 
 from RedStar import (
 	Application,
@@ -348,13 +349,9 @@ class SpecificationsYAML(Specifications):
 		self,
 		request: Request,
 	) -> Response:
-		from yaml import safe_dump
-
-		# JSON 응답과 같은 표현을 기준으로 값과 자료형을 정규화합니다.
-		document = loads(ResponseJSON(self.document()).body)
 		response = Response(
 			body=safe_dump(
-				document,
+				self.document(),
 				allow_unicode=True,
 				sort_keys=False,
 			).encode('utf-8'),
