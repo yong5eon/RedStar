@@ -9,11 +9,6 @@ from asyncio import (
 )
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
-from contextvars import copy_context
-from ....Logger import (
-	RequestContext,
-	getLogger,
-)
 from socket import socket
 from socketserver import BaseServer
 from typing import (
@@ -21,10 +16,13 @@ from typing import (
 	cast,
 )
 
-from ....Application import Application
-from ....IO.RequestReader import ClientDisconnected
-from ....IO.WebSocket.WebSocketFrame import WebSocketFrame
-from ..Python.Server import ServerRequestHandler
+from RedStar import (
+	Application,
+	getLogger,
+)
+from RedStar.Adapter.Implements.Python.Server import ServerRequestHandler
+from RedStar.IO.RequestReader import ClientDisconnected
+from RedStar.IO.WebSocket import WebSocketFrame
 from .Portal import Portal
 
 __all__ = (
@@ -207,23 +205,20 @@ class WebSocketProtocol(Protocol):
 			)
 			return
 
-		with RequestContext(None):
-			context = copy_context()
-			worker = self.portal.loop.run_in_executor(
-				self.executor,
-				context.run,
-				handle,
-			)
-			try:
-				await shield(worker)
-			except CancelledError:
-				self.portal.close()
-				with suppress(ClientDisconnected):
-					await worker
-				raise
-			except Exception:
-				self.logger.exception('WebSocket connection handling failed: adapter=Uvicorn')
-			finally:
-				self.portal.close()
-				self.transport.close()
+		worker = self.portal.loop.run_in_executor(
+			self.executor,
+			handle,
+		)
+		try:
+			await shield(worker)
+		except CancelledError:
+			self.portal.close()
+			with suppress(ClientDisconnected):
+				await worker
+			raise
+		except Exception:
+			self.logger.exception('WebSocket connection handling failed: adapter=Uvicorn')
+		finally:
+			self.portal.close()
+			self.transport.close()
 		return

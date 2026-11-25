@@ -7,7 +7,6 @@ from asyncio import (
 )
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
-from contextvars import copy_context
 from typing import Optional
 from a2wsgi.asgi_typing import (
 	Receive,
@@ -19,13 +18,12 @@ from a2wsgi.wsgi import (
 	build_environ,
 )
 
-from ....Application import Application
-from ....IO.RequestReader import ClientDisconnected
-from ....Logger import (
-	RequestContext,
+from RedStar import (
+	Application,
 	getLogger,
 )
-from ...WSGI import WSGIApplication
+from RedStar.Adapter.WSGI import WSGIApplication
+from RedStar.IO.RequestReader import ClientDisconnected
 from .Portal import Portal
 
 __all__ = (
@@ -251,32 +249,29 @@ class Middleware:
 				write(data)
 			return
 
-		with RequestContext(None):
-			context = copy_context()
-			worker = portal.loop.run_in_executor(
-				self.executor,
-				context.run,
-				run,
-			)
-			try:
-				await shield(worker)
-				await transmit({
-					'type': 'http.response.body',
-					'body': b'',
-					'more_body': False,
-				})
-			except ClientDisconnected as error:
-				if not body.caused_by_disconnect(error):
-					raise
-				getLogger('Server.Uvicorn').warning('ASGI request stopped after client disconnect')
-			except CancelledError:
-				portal.close()
-				with suppress(ClientDisconnected):
-					await worker
+		worker = portal.loop.run_in_executor(
+			self.executor,
+			run,
+		)
+		try:
+			await shield(worker)
+			await transmit({
+				'type': 'http.response.body',
+				'body': b'',
+				'more_body': False,
+			})
+		except ClientDisconnected as error:
+			if not body.caused_by_disconnect(error):
 				raise
-			finally:
-				portal.close()
-				pump.cancel()
-				with suppress(CancelledError):
-					await pump
+			getLogger('Server.Uvicorn').warning('ASGI request stopped after client disconnect')
+		except CancelledError:
+			portal.close()
+			with suppress(ClientDisconnected):
+				await worker
+			raise
+		finally:
+			portal.close()
+			pump.cancel()
+			with suppress(CancelledError):
+				await pump
 		return

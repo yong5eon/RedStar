@@ -5,12 +5,7 @@ from ..Application import Application
 from ..Error import Error
 from ..IO.RequestReader import ClientDisconnected
 from ..IO.ResponseWriter import ResponseWriter
-from ..Logger import (
-	RequestContext,
-	current_request,
-	getLogger,
-	request_context,
-)
+from ..Logger import getLogger
 from ..Request import Request
 from ..Response import Response
 
@@ -27,20 +22,6 @@ def handle_request(
 	writer: ResponseWriter,
 ) -> None:
 	"""Handle error responses and resource cleanup independently of the transport layer."""
-	context = request_context.get()
-	if context is not None and context.active and context.request is None and not context.application_started:
-		handle_request_in_context(application, create_request, writer)
-		return
-	with RequestContext(None):
-		handle_request_in_context(application, create_request, writer)
-	return
-
-
-def handle_request_in_context(
-	application: Application,
-	create_request: Callable[[], Request],
-	writer: ResponseWriter,
-) -> None:
 	logger = LOGGER
 	started = monotonic()
 	request = None
@@ -49,7 +30,6 @@ def handle_request_in_context(
 	try:
 		try:
 			request = create_request()
-			current_request(request)
 			response = application(request)
 		except ClientDisconnected:
 			raise
@@ -59,6 +39,7 @@ def handle_request_in_context(
 			logger.debug(
 				'HTTP error response selected: status=%s',
 				error.status,
+				id=request.id if request is not None else None,
 			)
 			response = Response(
 				status=error.status,
@@ -70,7 +51,7 @@ def handle_request_in_context(
 		except Exception:
 			if writer.started:
 				raise
-			logger.exception('Unexpected error while handling request')
+			logger.exception('Unexpected error while handling request', id=request.id if request is not None else None)
 			response = Response(
 				status=500,
 				body=b'Internal Server Error',
@@ -85,10 +66,13 @@ def handle_request_in_context(
 		outcome = 'completed'
 	except ConnectionError:
 		outcome = 'disconnected'
-		logger.warning('Client disconnected')
+		logger.warning('Client disconnected', id=request.id if request is not None else None)
 		raise
 	except Exception:
-		logger.exception('Response transmission failed: closing connection without another error response')
+		logger.exception(
+			'Response transmission failed: closing connection without another error response',
+			id=request.id if request is not None else None,
+		)
 		raise
 	finally:
 		duration = monotonic() - started
@@ -98,10 +82,11 @@ def handle_request_in_context(
 			writer.status if writer.started else None,
 			outcome,
 			duration,
+			id=request.id if request is not None else None,
 		)
 		if response is not None:
 			try:
 				response.close()
 			except Exception:
-				logger.exception('Response body cleanup failed')
+				logger.exception('Response body cleanup failed', id=request.id if request is not None else None)
 	return

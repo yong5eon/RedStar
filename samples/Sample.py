@@ -25,9 +25,9 @@ from RedStar import (
 	ExtensionRequestResponse,
 	Request,
 	Response,
+	getLogger as get_redstar_logger,
 )
 from RedStar.Adapter.Implements.Python import Server
-from RedStar.Logger import getLogger as get_redstar_logger
 from RedStar.Extensions import (
 	File,
 	FileSystem,
@@ -95,7 +95,7 @@ class LoggingFormatter(Formatter):
 
 	def __init__(self) -> None:
 		super().__init__(
-			'%(asctime)s %(levelname)-8s %(name)-12s [%(request_id)s] %(message)s',
+			'%(asctime)s %(levelname)-8s %(name)-12s %(request_id)-16.16s %(message)s',
 		)
 		return
 
@@ -106,7 +106,7 @@ class LoggingFormatter(Formatter):
 		record = copy(record)
 		record.name = record.name.split('.', 1)[0]
 		if not hasattr(record, 'request_id') or record.request_id is None:
-			record.request_id = '-'
+			record.request_id = ''
 		text = super().format(record)
 		if record.levelno >= ERROR:
 			color = '\x1b[31m'
@@ -161,7 +161,7 @@ class LogApplicationRequest(ApplicationRequest):
 		self,
 		request: Request,
 	) -> Request:
-		get_redstar_logger('Sample').debug('Application request hook completed')
+		get_redstar_logger('Sample').debug('Application request hook completed', id=request.id)
 		return request
 
 
@@ -175,6 +175,7 @@ class LogApplicationResponse(ApplicationRequestResponse):
 		get_redstar_logger('Sample').debug(
 			'Application response hook completed: status=%s',
 			status,
+			id=request.id,
 		)
 		return response
 
@@ -188,6 +189,7 @@ class LogApplicationError(ApplicationRequestError):
 		get_redstar_logger('Sample').debug(
 			'Application error hook completed: error_type=%s',
 			type(error).__name__,
+			id=request.id,
 		)
 		return
 

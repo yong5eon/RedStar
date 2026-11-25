@@ -1,7 +1,3 @@
-from contextvars import (
-	ContextVar,
-	Token,
-)
 from logging import (
 	Logger as PyLogger,
 	LoggerAdapter,
@@ -10,55 +6,12 @@ from logging import (
 from typing import (
 	Any,
 	Optional,
-	TYPE_CHECKING,
 )
 
 __all__ = (
 	'Logger',
 	'getLogger',
 )
-
-if TYPE_CHECKING:
-	from .Request import Request
-
-
-class RequestContext:
-	def __init__(
-		self,
-		request: Optional['Request'],
-	):
-		self.request = request
-		self.application_started = False
-		self.active = False
-		self.token: Optional[Token] = None
-		return
-
-	def __enter__(self) -> 'RequestContext':
-		self.active = True
-		self.token = request_context.set(self)
-		return self
-
-	def __exit__(
-		self,
-		exc_type: Any,
-		exc_value: Any,
-		traceback: Any,
-	) -> None:
-		if self.token is not None:
-			self.active = False
-			request_context.reset(self.token)
-		return
-
-
-request_context: ContextVar[Optional[RequestContext]] = ContextVar('redstar_request_context', default=None)
-
-
-def current_request(request: 'Request') -> None:
-	context = request_context.get()
-	if context is not None and context.active:
-		context.request = request
-	return
-
 
 class Logger(LoggerAdapter):
 	def __init__(
@@ -73,14 +26,22 @@ class Logger(LoggerAdapter):
 		msg: Any,
 		kwargs: dict[str, Any],
 	) -> tuple[Any, dict[str, Any]]:
-		extra = dict(kwargs.get('extra') or {})
-		context = request_context.get()
-		extra.setdefault(
-			'request_id',
-			context.request.id if context is not None and context.active and context.request is not None else None,
-		)
-		kwargs['extra'] = extra
 		return msg, kwargs
+
+	def log(
+		self,
+		level: int,
+		msg: Any,
+		*args: Any,
+		id: Optional[str] = None,
+		**kwargs: Any,
+	) -> None:
+		if id is not None:
+			extra = dict(kwargs.get('extra') or {})
+			extra['request_id'] = id
+			kwargs['extra'] = extra
+		super().log(level, msg, *args, **kwargs)
+		return
 
 	def __getattr__(
 		self,

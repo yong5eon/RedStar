@@ -13,7 +13,7 @@ from typing import (
 	TypeVar,
 )
 
-from ....IO.RequestReader import ClientDisconnected
+from RedStar.IO.RequestReader import ClientDisconnected
 
 __all__ = (
 	'Portal',

@@ -2,7 +2,6 @@ from dataclasses import (
 	dataclass,
 	field,
 )
-from ..Logger import getLogger
 from math import floor
 from threading import Lock
 from time import monotonic
@@ -15,25 +14,24 @@ from typing import (
 from uuid import uuid4
 from weakref import WeakKeyDictionary
 
-from ..Application import (
+from RedStar import (
 	Application,
 	ApplicationRequest,
 	ApplicationRequestError,
 	ApplicationRequestResponse,
-	RequestHookRegistration,
-)
-from ..Extension import (
 	Extension,
 	ExtensionCleanup,
 	ExtensionRequest,
 	ExtensionRequestError,
 	ExtensionRequestResponse,
 	ExtensionStartup,
+	Request,
+	RequestHookRegistration,
+	Response,
+	getLogger,
 )
-from ..Request import Request
-from ..Response import Response
-from ..Responses import ResponseJSON
-from ..Router import Router
+from RedStar.Responses import ResponseJSON
+from RedStar.Router import Router
 from .Utils.Routes import (
 	http_routes,
 	validate_path,

@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stdout
-from contextvars import copy_context
 from http.client import HTTPConnection
 from importlib import import_module
 from io import (
@@ -34,6 +33,7 @@ from RedStar import (
 	ApplicationRequest,
 	ApplicationRequestError,
 	Extension,
+	Logger,
 	Request,
 	RequestRunner,
 	RequestRunnerRequest,
@@ -41,6 +41,7 @@ from RedStar import (
 	RequestRunnerRequestResponse,
 	Response,
 	ResponseWriter,
+	getLogger as get_redstar_logger,
 )
 from RedStar.Adapter.Implements.Gunicorn import Server as GunicornServer
 from RedStar.Adapter.Implements.Python.Server import (
@@ -114,6 +115,54 @@ def transmit(
 
 
 class LoggingTests(TestCase):
+	def test_logger_accepts_optional_id_and_preserves_logging_options(self):
+		logger = get_redstar_logger('Test.OptionalID')
+		self.assertIsInstance(logger, Logger)
+		extra = {'operation': 'probe'}
+		with self.assertLogs('Test.OptionalID', level=DEBUG) as logs:
+			for method in (logger.debug, logger.info, logger.warning, logger.error):
+				method('value=%s', 'example', id='request-123', extra=extra)
+				method('without id')
+			logger.info('explicit extra', extra={'request_id': 'extra-id'})
+			try:
+				raise ValueError('failure')
+			except ValueError:
+				logger.exception('exception', id='request-123')
+		for record in logs.records[:8:2]:
+			self.assertEqual(record.request_id, 'request-123')
+			self.assertEqual(record.operation, 'probe')
+			self.assertEqual(record.getMessage(), 'value=example')
+		for record in logs.records[1:8:2]:
+			self.assertFalse(hasattr(record, 'request_id'))
+		self.assertEqual(extra, {'operation': 'probe'})
+		self.assertEqual(logs.records[-2].request_id, 'extra-id')
+		self.assertEqual(logs.records[-1].request_id, 'request-123')
+		self.assertIsNotNone(logs.records[-1].exc_info)
+		return
+
+	def test_request_logs_do_not_automatically_add_id(self):
+		class Observe(
+			Echo,
+			method='GET',
+			url='/sample/:id',
+		):
+			def run(
+				self,
+				value,
+			):
+				Application.logger.info('without explicit id')
+				Application.logger.info('with explicit id', id=value.id)
+				return Response()
+
+		app = Application()
+		app.add(Observe)
+		value = request()
+		with self.assertLogs('Application', level=INFO) as logs:
+			app(value)
+		self.assertFalse(hasattr(logs.records[0], 'request_id'))
+		self.assertEqual(logs.records[1].request_id, value.id)
+		return
+
 	def test_class_loggers_and_explicit_override(self):
 		for cls, name in (
 			(
@@ -280,7 +329,7 @@ class LoggingTests(TestCase):
 		self.assertIn('Application request received', debug_records[0].getMessage())
 		return
 
-	def test_full_request_has_safe_context_and_one_transmission_summary(self):
+	def test_full_request_has_id_and_one_transmission_summary(self):
 		app = Application()
 		app.add(Echo)
 		value = request()
@@ -587,7 +636,7 @@ class LoggingTests(TestCase):
 						value.writer,
 					)
 		summary = next(record for record in logs.records if 'HTTP transmission result' in record.getMessage())
-		self.assertIsNone(summary.request_id)
+		self.assertFalse(hasattr(summary, 'request_id'))
 		self.assertIn('method=None status=None', summary.getMessage())
 		self.assertIn('outcome=disconnected duration=2.500000', summary.getMessage())
 		return
@@ -678,96 +727,6 @@ class LoggingTests(TestCase):
 		self.assertEqual(len(logs.records), 1)
 		self.assertEqual(logs.records[0].request_id, value.id)
 		self.assertNotIn('private-', logs.records[0].getMessage())
-		return
-
-	def test_request_context_tracks_replacement_and_restores_after_nested_failure(self):
-		class Replace(ApplicationRequest):
-			def __call__(
-				self,
-				value,
-			):
-				replacement = request('/sample/replacement')
-				replacement.response_writer = value.writer
-				return replacement
-
-		class ChangeID(RequestRunnerRequest):
-			def __call__(
-				self,
-				value,
-			):
-				value.id = 'updated-id'
-				return value
-
-		class Inner(
-			Echo,
-			method='GET',
-			url='/inner/:id',
-		):
-			def run(
-				self,
-				value,
-			):
-				Application.logger.debug('inner-context')
-				raise RuntimeError('inner failure')
-
-		inner = Application()
-		inner.add(Inner)
-
-		class Outer(
-			Echo,
-			method='GET',
-			url='/sample/:id',
-			on_request=ChangeID(),
-		):
-			def run(
-				self,
-				value,
-			):
-				Application.logger.debug('outer-before')
-				try:
-					inner(request('/inner/value'))
-				except RuntimeError:
-					Application.logger.debug('outer-after')
-				return Response()
-
-		app = Application(on_request=Replace())
-		app.add(Outer)
-		value = request()
-		with self.assertLogs(level=DEBUG) as logs:
-			transmit(app, value)
-			Application.logger.debug('outside-request')
-		records = {record.getMessage(): record for record in logs.records}
-		self.assertEqual(records['outer-before'].request_id, 'updated-id')
-		self.assertEqual(records['outer-after'].request_id, 'updated-id')
-		self.assertNotEqual(records['inner-context'].request_id, 'updated-id')
-		self.assertIsNone(records['outside-request'].request_id)
-		summary = next(record for record in logs.records if 'HTTP transmission result' in record.getMessage())
-		self.assertEqual(summary.request_id, 'updated-id')
-		return
-
-	def test_copied_context_does_not_keep_id_after_request_ends(self):
-		contexts = []
-
-		class Capture(
-			Echo,
-			method='GET',
-			url='/sample/:id',
-		):
-			def run(
-				self,
-				value,
-			):
-				contexts.append(copy_context())
-				return Response()
-
-		app = Application()
-		app.add(Capture)
-		with self.assertLogs('Application', level=DEBUG) as logs:
-			transmit(app, request())
-			contexts[0].run(Application.logger.info, 'after-request', extra={'operation': 'probe'})
-		record = logs.records[-1]
-		self.assertIsNone(record.request_id)
-		self.assertEqual(record.operation, 'probe')
 		return
 
 	def test_python_server_reports_actual_port_and_one_safe_summary(self):
@@ -1038,7 +997,7 @@ class LoggingTests(TestCase):
 				'Request.WebSocket',
 			):
 				header = name.split('.', 1)[0]
-				self.assertIn(f'{header:<12} [-] source={name}', text)
+				self.assertIn(f'{header:<12} {"":<16} source={name}', text)
 			for name in (
 				'SampleExtra',
 				'ApplicationExtra',

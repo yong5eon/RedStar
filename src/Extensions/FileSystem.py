@@ -1,4 +1,3 @@
-from ..Logger import getLogger
 from typing import (
 	Optional,
 	Sequence,
@@ -7,22 +6,23 @@ from typing import (
 )
 from urllib.parse import unquote
 
-from ..Application import Application
-from ..Extension import (
+from RedStar import (
+	Application,
 	Extension,
 	ExtensionCleanup,
 	ExtensionRequest,
 	ExtensionRequestError,
 	ExtensionRequestResponse,
 	ExtensionStartup,
+	Request,
+	RequestRunner,
+	Route,
+	getLogger,
 )
-from ..Request import Request
-from ..RequestRunner import RequestRunner
-from ..Route import Route
-from ..Runners.RunExtension import RunExtensionFactory
-from ..Responses import ResponseFile
-from ..Responses.ResponseFile import file_error
-from ..Utils.FileSystemObject import Connection
+from RedStar.Runners.RunExtension import RunExtensionFactory
+from RedStar.Responses import ResponseFile
+from RedStar.Responses.ResponseFile import file_error
+from RedStar.Utils.FileSystemObject import Connection
 from .Utils.Routes import (
 	validate_path,
 )

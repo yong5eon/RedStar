@@ -1,21 +1,21 @@
-from ..Logger import getLogger
 from typing import (
 	Optional,
 	Sequence,
 	Union,
 )
 
-from ..Application import Application
-from ..Extension import (
+from RedStar import (
+	Application,
 	Extension,
 	ExtensionCleanup,
 	ExtensionRequest,
 	ExtensionRequestError,
 	ExtensionRequestResponse,
 	ExtensionStartup,
+	Request,
+	Response,
+	getLogger,
 )
-from ..Request import Request
-from ..Response import Response
 from .Utils import page
 from .Utils.Routes import (
 	http_routes,

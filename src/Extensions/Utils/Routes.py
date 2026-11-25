@@ -1,6 +1,8 @@
-from ...Extension import Extension
-from ...Route import Route
-from ...Runners.RunExtension import RunExtensionFactory
+from RedStar import (
+	Extension,
+	Route,
+)
+from RedStar.Runners.RunExtension import RunExtensionFactory
 
 __all__ = (
 	'validate_path',

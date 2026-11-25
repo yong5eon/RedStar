@@ -138,9 +138,11 @@ class Hello(
 
 ## Request IDs and logs
 
-RedStar request logs provide the current request ID in `LogRecord.request_id`. The ID is no longer duplicated as a `request_id=...` string in each message, so configurations that parse messages should use the record field instead. RedStar records created outside a request have a value of `None`.
+RedStar logs include `LogRecord.request_id` when a request ID is explicitly supplied. The ID is no longer duplicated as a `request_id=...` string in the message, so configurations that parse messages should use the record field instead. Not every log has a request ID.
 
-Application code can also use `from RedStar.Logger import getLogger` to include the field while handling a request. External records created with standard `logging.getLogger` may not have this field. A formatter using `%(request_id)s` must therefore provide a fallback for external records. The `LoggingFormatter` in `samples/Sample.py` demonstrates this by copying the record and displaying `-` when the value is missing or `None`. The library does not automatically configure the root logger or user handlers.
+Application code can use `from RedStar import getLogger` and optionally pass an ID as in `logger.info('message', id=request.id)`. Logs without an ID and external records created with standard `logging.getLogger` may not have this field. A formatter using `%(request_id)s` must therefore provide a fallback for records without it. The `LoggingFormatter` in `samples/Sample.py` demonstrates this by copying the record, displaying a blank when the value is missing or `None`, and limiting displayed IDs to 16 characters. The library does not automatically configure the root logger or user handlers.
+
+When replacing a RedStar class's `logger`, use the logger returned by `RedStar.getLogger` rather than a standard logger. Request logs use the `id` argument, which standard loggers do not accept.
 
 ## Hook implementation considerations
 

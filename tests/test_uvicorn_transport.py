@@ -71,7 +71,7 @@ class ReadingApplication(CompletedApplication):
 
 @skipUnless(find_spec('a2wsgi') is not None, 'a2wsgi required')
 class MiddlewareDisconnectTests(IsolatedAsyncioTestCase):
-	async def test_disconnect_log_keeps_request_id_after_worker_returns(self) -> None:
+	async def test_disconnect_log_does_not_require_request_id(self) -> None:
 		from RedStar.Adapter.Implements.Uvicorn.HTTP import Middleware
 
 		middleware = Middleware(Application(), 1, 2)
@@ -90,7 +90,7 @@ class MiddlewareDisconnectTests(IsolatedAsyncioTestCase):
 			with self.assertLogs('Server', level='WARNING') as logs:
 				await wait_for(middleware(scope, application.receive, AsyncMock()), 3)
 			record = next(record for record in logs.records if 'ASGI request stopped' in record.getMessage())
-			self.assertEqual(record.request_id, 'disconnect-123')
+			self.assertFalse(hasattr(record, 'request_id'))
 		finally:
 			middleware.executor.shutdown(wait=True)
 		return
