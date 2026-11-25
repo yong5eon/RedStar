@@ -466,8 +466,9 @@ class ExtensionHookTests(TestCase):
 		self.assertEqual(events, ['request', 'response:/changed'])
 		self.assertEqual(replacements[0].id, value.id)
 		self.assertTrue(any(
-			'Request replaced: previous_request_id=' + value.id + ' request_id=' + value.id
+			'Request replaced: previous_request_id=' + value.id
 			in record.getMessage()
+			and record.request_id == value.id
 			for record in logs.records
 		))
 		self.assertFalse(any(

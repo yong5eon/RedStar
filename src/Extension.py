@@ -2,7 +2,6 @@ from abc import (
 	ABC,
 	abstractmethod,
 )
-from logging import getLogger
 from typing import (
 	Optional,
 	Sequence,
@@ -13,6 +12,7 @@ from typing import (
 )
 
 from .Request import Request
+from .Logger import getLogger
 from .Response import Response
 
 if TYPE_CHECKING:

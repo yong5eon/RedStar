@@ -1,4 +1,4 @@
-from logging import getLogger
+from ..Logger import getLogger
 from typing import (
 	Optional,
 	Sequence,

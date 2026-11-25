@@ -1,4 +1,3 @@
-from logging import getLogger
 from struct import (
 	pack,
 	unpack,
@@ -10,6 +9,7 @@ from typing import (
 )
 
 from ...Request import Request
+from ...Logger import getLogger
 from .WebSocketError import WebSocketError
 from .WebSocketFrame import WebSocketFrame
 from .WebSocketFrameReader import WebSocketFrameReader
@@ -64,7 +64,7 @@ class WebSocket:
 			raise RuntimeError('WebSocket has already been accepted')
 		self.request.writer.upgrade(self.handshake.response(protocol))
 		self.accepted = True
-		self.logger.debug('WebSocket upgraded: request_id=%s status=101', self.request.id)
+		self.logger.debug('WebSocket upgraded: status=101', extra={'request_id': self.request.id})
 		return
 
 	def valid_code(
@@ -174,7 +174,7 @@ class WebSocket:
 				WebSocketFrame.CLOSE,
 				payload[:2],
 			))
-		self.logger.debug('WebSocket closed: request_id=%s code=%s', self.request.id, self.code)
+		self.logger.debug('WebSocket closed: code=%s', self.code, extra={'request_id': self.request.id})
 		return
 
 	def fail(
@@ -182,9 +182,9 @@ class WebSocket:
 		error: WebSocketError,
 	) -> None:
 		self.logger.warning(
-			'WebSocket protocol error: request_id=%s code=%s',
-			self.request.id,
+			'WebSocket protocol error: code=%s',
 			error.code,
+			extra={'request_id': self.request.id},
 		)
 		self.code = error.code
 		self.reason = error.reason
@@ -196,7 +196,7 @@ class WebSocket:
 				error.code,
 				error.reason,
 			))
-		self.logger.debug('WebSocket failed: request_id=%s code=%s', self.request.id, error.code)
+		self.logger.debug('WebSocket failed: code=%s', error.code, extra={'request_id': self.request.id})
 		return
 
 	def receive(self) -> Union[str, bytes, None]:

@@ -3,7 +3,7 @@ from collections.abc import (
 	Sequence,
 )
 from copy import deepcopy
-from logging import getLogger
+from ..Logger import getLogger
 from time import monotonic
 from re import (
 	fullmatch,

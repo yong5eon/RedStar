@@ -2,7 +2,7 @@ from dataclasses import (
 	dataclass,
 	field,
 )
-from logging import getLogger
+from ..Logger import getLogger
 from math import floor
 from threading import Lock
 from time import monotonic

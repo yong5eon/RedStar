@@ -1,10 +1,14 @@
-from logging import getLogger
 from typing import (
 	Optional,
 	Type,
 )
 
 from ..Extension import Extension
+from ..Logger import (
+	RequestContext,
+	current_request,
+	getLogger,
+)
 from ..Request import Request
 from ..RequestRunner import RequestRunner
 from ..Response import (
@@ -25,6 +29,14 @@ def run_extension(
 	request: Request,
 ) -> Optional[Response]:
 	"""Wrap only the extension-processing boundary after internal RequestRunner validation."""
+	with RequestContext(request):
+		return run_extension_in_context(extension, request)
+
+
+def run_extension_in_context(
+	extension: Extension,
+	request: Request,
+) -> Optional[Response]:
 	try:
 		for hook in extension.request_hooks:
 			previous_request = request
@@ -35,8 +47,9 @@ def run_extension(
 			replaced = result is not previous_request
 			if replaced:
 				result.id = previous_id
+			current_request(result)
 			if replaced or previous_id != result.id:
-				logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, result.id)
+				logger.debug('Request replaced: previous_request_id=%s', previous_id)
 			request = result
 		response = extension(request)
 		if response is not None and not isinstance(response, Response):

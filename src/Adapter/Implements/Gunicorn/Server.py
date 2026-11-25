@@ -1,5 +1,5 @@
 from os import name
-from logging import getLogger
+from ....Logger import getLogger
 from typing import (
 	Any,
 	Union,

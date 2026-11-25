@@ -1,4 +1,4 @@
-from logging import getLogger
+from ....Logger import getLogger
 from socket import socket
 from typing import (
 	Any,

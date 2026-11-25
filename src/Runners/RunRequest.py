@@ -1,4 +1,3 @@
-from logging import getLogger
 from typing import (
 	Optional,
 	Type,
@@ -9,6 +8,11 @@ from ..RequestRunner import (
 	RequestRunner,
 )
 from ..Request import Request
+from ..Logger import (
+	RequestContext,
+	current_request,
+	getLogger,
+)
 from ..Response import (
 	Response,
 	close_bodies,
@@ -88,6 +92,13 @@ class RunRequest:
 		self,
 		request: Request,
 	) -> Optional[Response]:
+		with RequestContext(request):
+			return self.run_in_context(request)
+
+	def run_in_context(
+		self,
+		request: Request,
+	) -> Optional[Response]:
 		properties = self.properties
 		writer = None
 		try:
@@ -112,8 +123,9 @@ class RunRequest:
 				replaced = result is not previous_request
 				if replaced:
 					result.id = previous_id
+				current_request(result)
 				if replaced or previous_id != result.id:
-					self.logger.debug('Request replaced: previous_request_id=%s request_id=%s', previous_id, result.id)
+					self.logger.debug('Request replaced: previous_request_id=%s', previous_id)
 				request = result
 			writer = request.response_writer
 			if writer is not None:

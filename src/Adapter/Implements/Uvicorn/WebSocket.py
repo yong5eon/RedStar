@@ -9,7 +9,11 @@ from asyncio import (
 )
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
-from logging import getLogger
+from contextvars import copy_context
+from ....Logger import (
+	RequestContext,
+	getLogger,
+)
 from socket import socket
 from socketserver import BaseServer
 from typing import (
@@ -203,20 +207,23 @@ class WebSocketProtocol(Protocol):
 			)
 			return
 
-		worker = self.portal.loop.run_in_executor(
-			self.executor,
-			handle,
-		)
-		try:
-			await shield(worker)
-		except CancelledError:
-			self.portal.close()
-			with suppress(ClientDisconnected):
-				await worker
-			raise
-		except Exception:
-			self.logger.exception('WebSocket connection handling failed: adapter=Uvicorn')
-		finally:
-			self.portal.close()
-			self.transport.close()
+		with RequestContext(None):
+			context = copy_context()
+			worker = self.portal.loop.run_in_executor(
+				self.executor,
+				context.run,
+				handle,
+			)
+			try:
+				await shield(worker)
+			except CancelledError:
+				self.portal.close()
+				with suppress(ClientDisconnected):
+					await worker
+				raise
+			except Exception:
+				self.logger.exception('WebSocket connection handling failed: adapter=Uvicorn')
+			finally:
+				self.portal.close()
+				self.transport.close()
 		return

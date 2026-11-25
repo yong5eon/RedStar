@@ -2,7 +2,7 @@ from http.server import (
 	BaseHTTPRequestHandler,
 	ThreadingHTTPServer,
 )
-from logging import getLogger
+from ....Logger import getLogger
 from typing import (
 	Optional,
 	Union,

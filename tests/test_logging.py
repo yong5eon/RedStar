@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stdout
+from contextvars import copy_context
 from http.client import HTTPConnection
 from importlib import import_module
 from io import (
@@ -293,7 +294,8 @@ class LoggingTests(TestCase):
 		summaries = [record for record in logs.records if 'HTTP transmission result' in record.getMessage()]
 		self.assertEqual(len(summaries), 1)
 		self.assertEqual(summaries[0].levelno, INFO)
-		self.assertIn('request_id=' + value.id, summaries[0].getMessage())
+		self.assertTrue(all(record.request_id == value.id for record in logs.records))
+		self.assertNotIn('request_id=', summaries[0].getMessage())
 		self.assertIn('status=200 outcome=completed', summaries[0].getMessage())
 		self.assertIn("route='/sample/:id'", debug_records[1].getMessage())
 		for private in (
@@ -336,20 +338,14 @@ class LoggingTests(TestCase):
 				)
 				with self.assertLogs(level=DEBUG) as logs:
 					transmit(app, value)
-				messages = [
-					record.getMessage()
-					for record in logs.records
-					if 'request_id=' in record.getMessage()
-				]
-				self.assertGreaterEqual(len(messages), 3)
+				self.assertGreaterEqual(len(logs.records), 3)
 				self.assertTrue(all(
-					'request_id=' + (expected_id if expected_id is not None else value.id)
-					in message
-					for message in messages
+					record.request_id == (expected_id if expected_id is not None else value.id)
+					for record in logs.records
 				))
 				if expected_id is None:
 					self.assertRegex(value.id, r'^[0-9a-f]{32}$')
-					self.assertNotIn(invalid_request_id, '\n'.join(messages))
+					self.assertNotIn(invalid_request_id, '\n'.join(logs.output))
 		return
 
 	def test_hook_order_and_request_replacement_are_observable(self):
@@ -418,7 +414,7 @@ class LoggingTests(TestCase):
 		messages = '\n'.join(logs.output)
 		self.assertEqual(replacement.replacement.id, value.id)
 		self.assertIn(
-			'Request replaced: previous_request_id=' + value.id + ' request_id=' + value.id,
+			'Request replaced: previous_request_id=' + value.id,
 			messages,
 		)
 		self.assertEqual(events, [
@@ -431,8 +427,8 @@ class LoggingTests(TestCase):
 			for record in logs.records
 			if record.levelno == DEBUG
 		))
-		summary = next(record.getMessage() for record in logs.records if 'HTTP transmission result' in record.getMessage())
-		self.assertIn('request_id=' + value.id, summary)
+		summary = next(record for record in logs.records if 'HTTP transmission result' in record.getMessage())
+		self.assertEqual(summary.request_id, value.id)
 		self.assertNotIn('replaced-private', messages)
 		return
 
@@ -590,9 +586,10 @@ class LoggingTests(TestCase):
 						Mock(side_effect=ClientDisconnected()),
 						value.writer,
 					)
-		summary = next(record.getMessage() for record in logs.records if 'HTTP transmission result' in record.getMessage())
-		self.assertIn('request_id=None method=None status=None', summary)
-		self.assertIn('outcome=disconnected duration=2.500000', summary)
+		summary = next(record for record in logs.records if 'HTTP transmission result' in record.getMessage())
+		self.assertIsNone(summary.request_id)
+		self.assertIn('method=None status=None', summary.getMessage())
+		self.assertIn('outcome=disconnected duration=2.500000', summary.getMessage())
 		return
 
 	def test_parallel_requests_keep_route_and_id_separate(self):
@@ -627,10 +624,10 @@ class LoggingTests(TestCase):
 		with self.assertLogs(level=DEBUG) as logs:
 			with ThreadPoolExecutor(max_workers=2) as executor:
 				list(executor.map(lambda value: transmit(app, value), values))
-		summaries = [record.getMessage() for record in logs.records if 'HTTP transmission result' in record.getMessage()]
+		summaries = [record for record in logs.records if 'HTTP transmission result' in record.getMessage()]
 		self.assertEqual(len(summaries), 2)
 		for value in values:
-			self.assertEqual(sum('request_id=' + value.id in text for text in summaries), 1)
+			self.assertEqual(sum(record.request_id == value.id for record in summaries), 1)
 		self.assertNotIn('secret-', '\n'.join(logs.output))
 		return
 
@@ -679,8 +676,98 @@ class LoggingTests(TestCase):
 		with self.assertLogs('Server', level=INFO) as logs:
 			transmit(outer, value)
 		self.assertEqual(len(logs.records), 1)
-		self.assertIn('request_id=' + value.id, logs.records[0].getMessage())
+		self.assertEqual(logs.records[0].request_id, value.id)
 		self.assertNotIn('private-', logs.records[0].getMessage())
+		return
+
+	def test_request_context_tracks_replacement_and_restores_after_nested_failure(self):
+		class Replace(ApplicationRequest):
+			def __call__(
+				self,
+				value,
+			):
+				replacement = request('/sample/replacement')
+				replacement.response_writer = value.writer
+				return replacement
+
+		class ChangeID(RequestRunnerRequest):
+			def __call__(
+				self,
+				value,
+			):
+				value.id = 'updated-id'
+				return value
+
+		class Inner(
+			Echo,
+			method='GET',
+			url='/inner/:id',
+		):
+			def run(
+				self,
+				value,
+			):
+				Application.logger.debug('inner-context')
+				raise RuntimeError('inner failure')
+
+		inner = Application()
+		inner.add(Inner)
+
+		class Outer(
+			Echo,
+			method='GET',
+			url='/sample/:id',
+			on_request=ChangeID(),
+		):
+			def run(
+				self,
+				value,
+			):
+				Application.logger.debug('outer-before')
+				try:
+					inner(request('/inner/value'))
+				except RuntimeError:
+					Application.logger.debug('outer-after')
+				return Response()
+
+		app = Application(on_request=Replace())
+		app.add(Outer)
+		value = request()
+		with self.assertLogs(level=DEBUG) as logs:
+			transmit(app, value)
+			Application.logger.debug('outside-request')
+		records = {record.getMessage(): record for record in logs.records}
+		self.assertEqual(records['outer-before'].request_id, 'updated-id')
+		self.assertEqual(records['outer-after'].request_id, 'updated-id')
+		self.assertNotEqual(records['inner-context'].request_id, 'updated-id')
+		self.assertIsNone(records['outside-request'].request_id)
+		summary = next(record for record in logs.records if 'HTTP transmission result' in record.getMessage())
+		self.assertEqual(summary.request_id, 'updated-id')
+		return
+
+	def test_copied_context_does_not_keep_id_after_request_ends(self):
+		contexts = []
+
+		class Capture(
+			Echo,
+			method='GET',
+			url='/sample/:id',
+		):
+			def run(
+				self,
+				value,
+			):
+				contexts.append(copy_context())
+				return Response()
+
+		app = Application()
+		app.add(Capture)
+		with self.assertLogs('Application', level=DEBUG) as logs:
+			transmit(app, request())
+			contexts[0].run(Application.logger.info, 'after-request', extra={'operation': 'probe'})
+		record = logs.records[-1]
+		self.assertIsNone(record.request_id)
+		self.assertEqual(record.operation, 'probe')
 		return
 
 	def test_python_server_reports_actual_port_and_one_safe_summary(self):
@@ -839,6 +926,7 @@ class LoggingTests(TestCase):
 				))
 		self.assertIn('WebSocket upgraded', '\n'.join(logs.output))
 		self.assertIn('WebSocket closed', '\n'.join(logs.output))
+		self.assertTrue(all(record.request_id == value.id for record in logs.records))
 		self.assertNotIn('private-', '\n'.join(logs.output))
 		other = WebSocket(request('/'), limit=16)
 		with patch.object(other.handshake, 'response', return_value=Response(status=101)):
@@ -846,6 +934,7 @@ class LoggingTests(TestCase):
 		with self.assertLogs('Request.WebSocket', level=DEBUG) as logs:
 			other.fail(WebSocketError(1002, 'private-protocol-reason'))
 		self.assertEqual(logs.records[0].levelno, WARNING)
+		self.assertEqual(logs.records[0].request_id, other.request.id)
 		self.assertIn('code=1002', logs.records[0].getMessage())
 		self.assertNotIn('private-protocol-reason', '\n'.join(logs.output))
 		return
@@ -949,7 +1038,7 @@ class LoggingTests(TestCase):
 				'Request.WebSocket',
 			):
 				header = name.split('.', 1)[0]
-				self.assertIn(f'{header:<12} source={name}', text)
+				self.assertIn(f'{header:<12} [-] source={name}', text)
 			for name in (
 				'SampleExtra',
 				'ApplicationExtra',

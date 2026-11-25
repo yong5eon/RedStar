@@ -1,4 +1,3 @@
-from logging import getLogger
 from typing import (
 	Optional,
 	Sequence,
@@ -6,6 +5,7 @@ from typing import (
 )
 
 from ..Application import Application
+from ..Logger import getLogger
 from ..Extension import (
 	Extension,
 	ExtensionCleanup,
@@ -86,7 +86,7 @@ class Ping(Extension):
 		request: Request,
 	) -> Response:
 		running = self.application.running
-		self.logger.debug('Application state observed: request_id=%s running=%s', request.id, running)
+		self.logger.debug('Application state observed: running=%s', running)
 		return ResponseJSON(
 			{'status': 'running' if running else 'stopped'},
 			status=200 if running else 503,

@@ -136,6 +136,12 @@ class Hello(
 
 `RequestRunner` 요청 훅은 handler가 생성되고 route별 검증이 끝난 뒤 실행됩니다. 응답 훅은 `run()`이 `Response`를 반환한 뒤 CORS 처리와 전송 전에 실행됩니다. 이 예시는 route 응답에 요청 ID를 추가합니다. 여러 훅을 등록하면 설정 순서대로 실행되므로 각 훅은 앞선 훅이 전달하는 요청·응답 형식을 따라야 합니다.
 
+## 요청 ID와 로그
+
+RedStar의 요청 처리 로그는 `LogRecord.request_id`에 현재 요청 ID를 제공합니다. ID는 더 이상 각 메시지의 `request_id=...` 문자열에 중복되지 않으므로 메시지를 파싱하던 설정은 레코드 필드를 사용하도록 변경하세요. 요청 밖에서 생성된 RedStar 로그의 값은 `None`입니다.
+
+자체 코드에서도 `from RedStar.Logger import getLogger`로 로거를 가져오면 요청 처리 중 같은 필드를 사용할 수 있습니다. 일반 `logging.getLogger`로 만든 외부 레코드에는 이 필드가 없을 수 있습니다. 따라서 `%(request_id)s`를 사용하는 formatter는 외부 레코드의 기본값을 처리해야 합니다. `samples/Sample.py`의 `LoggingFormatter`는 레코드를 복사하고 값이 없거나 `None`이면 `-`를 표시하는 예제입니다. 라이브러리는 루트 로거와 사용자 handler를 자동 설정하지 않습니다.
+
 ## 훅 사용 시 주의점
 
 - 요청 또는 응답을 교체하는 훅은 후속 단계가 사용할 객체를 반환해야 합니다.
