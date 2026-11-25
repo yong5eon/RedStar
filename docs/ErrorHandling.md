@@ -62,6 +62,8 @@ flowchart TD
 
 `Error`, `ClientError`, `ServerError`는 HTTP 상태 코드와 오류 reason을 표현합니다. 사용자 오류 훅이 `Response`를 반환하면 해당 상태 코드, 헤더 및 본문은 훅이 결정하며 adapter는 그 응답을 기본 오류 응답으로 교체하지 않습니다.
 
+adapter가 `Error`를 기본 HTTP 응답으로 변환할 때는 `ClientError`를 `WARNING`, 그 밖의 `Error`를 `ERROR` 수준으로 기록합니다. 로그 레코드에는 사용 가능한 `request_id`, 메시지에는 HTTP 상태 코드가 유지되며 요청 URI·쿼리와 오류 reason은 메시지에 포함되지 않습니다. 이 로깅은 응답의 상태 코드, 헤더와 본문을 변경하지 않습니다.
+
 ## Application 오류 응답 예시
 
 다음 예시는 예측하지 못한 서버 예외를 로그로 관찰하고, 내부 오류 정보를 노출하지 않는 응답으로 처리합니다. `ClientError`는 `None`을 반환하여 adapter의 기존 상태 코드·오류 본문 처리를 유지합니다.

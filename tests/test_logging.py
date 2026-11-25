@@ -32,6 +32,7 @@ from RedStar import (
 	Application,
 	ApplicationRequest,
 	ApplicationRequestError,
+	Error,
 	Extension,
 	Logger,
 	Request,
@@ -41,6 +42,7 @@ from RedStar import (
 	RequestRunnerRequestResponse,
 	Response,
 	ResponseWriter,
+	ServerError,
 	getLogger as get_redstar_logger,
 )
 from RedStar.Adapter.Implements.Gunicorn import Server as GunicornServer
@@ -521,7 +523,7 @@ class LoggingTests(TestCase):
 		self.assertIn('status=500 outcome=completed', summary)
 		return
 
-	def test_http_rejections_are_not_warnings(self):
+	def test_http_rejections_are_warnings_and_hide_request_data(self):
 		app = Application()
 		app.add(Echo)
 		for value, status in (
@@ -537,11 +539,73 @@ class LoggingTests(TestCase):
 			with self.subTest(status=status):
 				with self.assertLogs(level=DEBUG) as logs:
 					transmit(app, value)
-				self.assertFalse(any(record.levelno >= WARNING for record in logs.records))
-				self.assertIn('status=' + str(status), '\n'.join(logs.output))
-				self.assertNotIn('private-query', '\n'.join(logs.output))
+				error_records = [
+					record for record in logs.records
+					if 'HTTP error response selected' in record.getMessage()
+				]
+				self.assertEqual(len(error_records), 1)
+				self.assertEqual(error_records[0].levelno, WARNING)
+				self.assertEqual(error_records[0].request_id, value.id)
+				self.assertIn('status=' + str(status), error_records[0].getMessage())
+				self.assertEqual(value.writer.status, status)
+				for private in (
+					'private-query',
+					'private-auth',
+					'private-cookie',
+				):
+					self.assertNotIn(private, '\n'.join(logs.output))
 				if status == 405:
 					self.assertNotIn('private-path', '\n'.join(logs.output))
+		return
+
+	def test_other_redstar_errors_are_errors_and_hide_details(self):
+		class Failure(
+			Echo,
+			method='GET',
+			url='/sample/:id',
+		):
+			error: Error = Error(500, 'private-default-error')
+
+			def run(
+				self,
+				value,
+			):
+				raise self.error
+
+		for error, status in (
+			(
+				ServerError('private-server-error', status=503),
+				503,
+			),
+			(
+				Error(400, 'private-default-error'),
+				400,
+			),
+		):
+			with self.subTest(error=type(error), status=status):
+				Failure.error = error
+				app = Application()
+				app.add(Failure)
+				value = request()
+				with self.assertLogs(level=DEBUG) as logs:
+					transmit(app, value)
+				error_records = [
+					record for record in logs.records
+					if 'HTTP error response selected' in record.getMessage()
+				]
+				self.assertEqual(len(error_records), 1)
+				self.assertEqual(error_records[0].levelno, ERROR)
+				self.assertEqual(error_records[0].request_id, value.id)
+				self.assertIn('status=' + str(status), error_records[0].getMessage())
+				self.assertEqual(value.writer.status, status)
+				for private in (
+					'private-query',
+					'private-auth',
+					'private-cookie',
+					'private-server-error',
+					'private-default-error',
+				):
+					self.assertNotIn(private, '\n'.join(logs.output))
 		return
 
 	def test_failed_or_disconnected_transmission_is_not_successful(self):
