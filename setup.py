@@ -67,6 +67,9 @@ setup(
 	},
 	packages=PACKAGES,
 	package_dir=PACKAGE_DIR,
+	install_requires=[
+		'PyYAML>=6',
+	],
 	include_package_data=False,
 	package_data={
 		'RedStar.Extensions': [

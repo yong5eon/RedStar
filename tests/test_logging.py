@@ -57,7 +57,7 @@ from RedStar.Extensions import (
 	FileSystem,
 	Metrics,
 	Ping,
-	Specifications,
+	SpecificationsJSON,
 	Status,
 	Swagger,
 )
@@ -220,7 +220,7 @@ class LoggingTests(TestCase):
 				'Extension.Status',
 			),
 			(
-				Specifications,
+				SpecificationsJSON,
 				'Extension.Specifications',
 			),
 			(

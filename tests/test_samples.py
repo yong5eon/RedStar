@@ -22,7 +22,7 @@ from RedStar import (
 	RequestReader,
 	ResponseWriter,
 )
-from RedStar.Extensions import Specifications
+from RedStar.Extensions import SpecificationsJSON
 
 from test_server import running
 
@@ -233,7 +233,7 @@ class SampleTests(TestCase):
 		app = create_application()
 		app.start()
 		self.addCleanup(app.stop)
-		specifications = next(extension for extension in app.exts if isinstance(extension, Specifications))
+		specifications = next(extension for extension in app.exts if isinstance(extension, SpecificationsJSON))
 		document = specifications.document()
 		operation = document['paths']['/api/run/{a}/{b}']['post']
 		parameters = {

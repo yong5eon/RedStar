@@ -15,8 +15,9 @@
 | `Ping` | 간단한 health check 응답 |
 | `Status` | 브라우저에서 볼 수 있는 상태 페이지 |
 | `Metrics` | 요청 처리 횟수·시간 등 지표 수집 |
-| `Specifications` | 라우트 선언에서 OpenAPI 문서 제공 |
-| `Swagger` | `Specifications` 문서를 탐색할 UI 제공 |
+| `SpecificationsJSON` | 라우트 선언에서 OpenAPI JSON 문서 제공 |
+| `SpecificationsYAML` | 같은 OpenAPI 문서를 YAML 형식으로 제공 |
+| `Swagger` | 지정한 OpenAPI 문서를 탐색할 UI 제공 |
 | `File` | 정해진 파일 또는 리소스 응답 |
 | `FileSystem` | 파일 시스템을 통한 파일 응답 라우트 제공 |
 
@@ -27,7 +28,8 @@ from RedStar import Application
 from RedStar.Extensions import (
   Metrics,
   Ping,
-  Specifications,
+  SpecificationsJSON,
+  SpecificationsYAML,
   Swagger,
 )
 
@@ -35,12 +37,13 @@ from RedStar.Extensions import (
 application = Application(exts=(
   Metrics('/metrics'),
   Ping('/ping'),
-  Specifications('/api/doc', title='Example API'),
+  SpecificationsJSON('/api/doc', title='Example API'),
+  SpecificationsYAML('/api/doc.yaml', title='Example API'),
   Swagger('/swagger', spec_uri='/api/doc'),
 ))
 ```
 
-`Swagger`는 지정한 `spec_uri`에서 OpenAPI 문서를 가져오므로, 그 경로에 `Specifications`가 등록되어 있어야 합니다. 명세의 정확도는 handler의 `summary`, `description`, `tags`, 입력 콘텐츠와 응답 정의에 달려 있습니다. 운영에서 상태·지표·문서 endpoint에 대한 접근을 제한해야 하는지 검토하세요.
+`SpecificationsJSON`과 `SpecificationsYAML`은 같은 OpenAPI 3.1 문서를 각각 `application/json`과 `application/yaml`로 제공합니다. `Swagger`는 지정한 `spec_uri`에서 문서를 가져오므로 그 경로에 두 확장 중 하나를 등록하세요. 기존 `Specifications` 사용은 `SpecificationsJSON`으로 바꾸거나 YAML 응답이 필요하면 `SpecificationsYAML`을 사용하세요. 명세의 정확도는 handler의 `summary`, `description`, `tags`, 입력 콘텐츠와 응답 정의에 달려 있습니다. 운영에서 상태·지표·문서 endpoint에 대한 접근을 제한해야 하는지 검토하세요.
 
 확장 인스턴스는 하나의 `Application`에만 등록할 수 있습니다. 여러 애플리케이션에서 같은 인스턴스를 공유하지 말고 각 앱마다 새 인스턴스를 만드세요. 사용자 정의 확장은 `Extension` 계약을 구현하고 요청, 응답, 오류 및 시작·정리 훅을 제공할 수 있습니다.
 

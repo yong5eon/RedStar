@@ -34,7 +34,7 @@ from RedStar.Extensions import (
 	Status,
 	Ping,
 	Metrics,
-	Specifications,
+	SpecificationsJSON,
 	Swagger,
 )
 from RedStar.Responses import ResponseFile
@@ -233,7 +233,7 @@ def create_application() -> Application:
 				'/status',
 				metrics_uri='/metrics',
 			),
-			Specifications(
+			SpecificationsJSON(
 				'/api/doc',
 				title='RedStar HTTP Sample',
 			),

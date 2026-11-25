@@ -16,7 +16,16 @@ import sys
 
 class RejectExternal(MetaPathFinder):
 	def find_spec(self, fullname, path=None, target=None):
-		if fullname.split('.')[0] in ('DefStream', 'Liquirizia', 'swagger_ui', 'gunicorn', 'gevent', 'uvicorn', 'a2wsgi'):
+		if fullname.split('.')[0] in (
+			'DefStream',
+			'Liquirizia',
+			'swagger_ui',
+			'gunicorn',
+			'gevent',
+			'uvicorn',
+			'a2wsgi',
+			'yaml',
+		):
 			raise AssertionError('external dependency: ' + fullname)
 		return None
 
@@ -38,7 +47,8 @@ from RedStar.Utils.FileSystemObject.Implements.FileSystem import Configuration, 
 from RedStar.Extensions import (
 	Metrics,
 	Status,
-	Specifications,
+	SpecificationsJSON,
+	SpecificationsYAML,
 	Swagger,
 	Ping,
 )
@@ -53,7 +63,8 @@ assert app(Request('127.0.0.1', 1, 'GET', '/')).body == b'OK'
 extended = Application(exts=(
 	Metrics('/metrics'),
 	Status('/status', metrics_uri='/metrics'),
-	Specifications('/spec'),
+	SpecificationsJSON('/spec'),
+	SpecificationsYAML('/spec.yaml'),
 	Swagger('/swagger', spec_uri='/spec'),
 	Ping('/ping'),
 ))

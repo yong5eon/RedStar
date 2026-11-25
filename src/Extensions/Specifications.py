@@ -3,6 +3,7 @@ from collections.abc import (
 	Sequence,
 )
 from copy import deepcopy
+from json import loads
 from time import monotonic
 from re import (
 	fullmatch,
@@ -51,11 +52,12 @@ from .Utils.Routes import (
 )
 
 __all__ = (
-	'Specifications',
+	'SpecificationsJSON',
+	'SpecificationsYAML',
 )
 
-class Specifications(Extension):
-	"""Convert the current declarations in the shared route list to an OpenAPI 3.1 document."""
+class _Specifications(Extension):
+	"""Build an OpenAPI 3.1 document from the current shared route declarations."""
 
 	logger = getLogger('Extension.Specifications')
 
@@ -329,9 +331,33 @@ class Specifications(Extension):
 		)
 		return document
 
+class SpecificationsJSON(_Specifications):
+	"""Serialize the generated OpenAPI document as JSON."""
+
 	def __call__(
 		self,
 		request: Request,
 	) -> Response:
 		response = ResponseJSON(self.document())
+		return response
+
+class SpecificationsYAML(_Specifications):
+	"""Serialize the generated OpenAPI document as YAML."""
+
+	def __call__(
+		self,
+		request: Request,
+	) -> Response:
+		from yaml import safe_dump
+
+		# JSON 응답과 같은 표현을 기준으로 값과 자료형을 정규화합니다.
+		document = loads(ResponseJSON(self.document()).body)
+		response = Response(
+			body=safe_dump(
+				document,
+				allow_unicode=True,
+				sort_keys=False,
+			).encode('utf-8'),
+			format='application/yaml',
+		)
 		return response
