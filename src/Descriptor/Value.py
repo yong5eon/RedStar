@@ -13,12 +13,8 @@ from typing import (
 	Dict,
 	Union,
 	Iterable,
-	Tuple,
 )
-from abc import (
-	ABCMeta,
-	ABC,
-)
+from abc import ABC
 
 __all__ = (
 	'Type',
@@ -27,8 +23,6 @@ __all__ = (
 	'Schema',
 	'OneOf',
 	'AllOf',
-	'TypeMapper',
-	'TypeEncoder',
 )
 
 
@@ -168,21 +162,3 @@ class OneOf(Condition):
 
 
 class AllOf(Condition): pass
-
-
-class TypeMapper(metaclass=ABCMeta):
-	"""Convert a user-defined type to a Value subclass and constructor arguments."""
-
-	def __call__(
-		self,
-		o: type,
-	) -> Tuple[type[Value], Dict[str, Any]]:
-		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
-
-
-class TypeEncoder(metaclass=ABCMeta):
-	def __call__(
-		self,
-		o: Any,
-	) -> Any:
-		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
