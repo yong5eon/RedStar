@@ -1,14 +1,10 @@
 from contextlib import redirect_stdout
-from dataclasses import dataclass
 from http.client import HTTPConnection
 from importlib import import_module
 from io import StringIO
 from json import loads
 from threading import Event
-from typing import (
-	Annotated,
-	Any,
-)
+from typing import Any
 from unittest import TestCase
 from unittest.mock import patch
 from yaml import safe_load
@@ -39,7 +35,6 @@ from RedStar.Descriptor import (
 	Properties,
 	Schema,
 	String,
-	ToSchema,
 )
 from RedStar.Extensions import (
 	Status,
@@ -582,10 +577,6 @@ class SpecTests(TestCase):
 		return
 
 	def test_openapi_metadata_schema_auth_and_custom_methods(self):
-		@dataclass
-		class Model:
-			value: Annotated[int, '값']
-
 		class Documented(
 			RequestRunner,
 			method='POST',
@@ -639,7 +630,10 @@ class SpecTests(TestCase):
 			response=ResponseSpecification(
 				201,
 				'생성됨',
-				Content('application/json', ToSchema(Model)),
+				Content('application/json', Schema(
+					'Model',
+					Object(description='Model', properties=Properties(value=Integer(description='값'))),
+				)),
 			),
 			auth=Auth(
 				SessionAuthorization(),
@@ -713,7 +707,12 @@ class SpecTests(TestCase):
 			operation['requestBody']['content']['application/json']['example'],
 			expected_example,
 		)
-		self.assertIn('Model', document['components']['schemas'])
+		self.assertEqual(document['components']['schemas']['Model'], {
+			'type': 'object',
+			'properties': {'value': {'type': 'integer', 'description': '값'}},
+			'description': 'Model',
+			'required': ['value'],
+		})
 		self.assertEqual(document['x-redstar-operations'][0]['method'], 'CUSTOM')
 		json_response = app(request('/spec'))
 		with patch(
