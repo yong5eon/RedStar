@@ -627,7 +627,7 @@ class BuiltinExtensionTests(TestCase):
 		app.start()
 		try:
 			self.assertEqual(app(request('/ping')).status, 200)
-			self.assertEqual(loads(app(request('/api/doc/json')).body)['openapi'], '3.1.0')
+			self.assertEqual(loads(app(request('/api/doc/json')).body)['openapi'], '3.2.0')
 		finally:
 			app.stop()
 		output = Mock()
@@ -638,5 +638,5 @@ class BuiltinExtensionTests(TestCase):
 			parser.return_value.parse_args.return_value.output = output
 			script.main()
 		self.assertFalse(app.running)
-		self.assertEqual(loads(output.write_text.call_args.args[0])['openapi'], '3.1.0')
+		self.assertEqual(loads(output.write_text.call_args.args[0])['openapi'], '3.2.0')
 		return

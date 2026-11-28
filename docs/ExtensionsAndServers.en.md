@@ -43,7 +43,99 @@ application = Application(exts=(
 ))
 ```
 
-`SpecificationsJSON` and `SpecificationsYAML` serve the same OpenAPI 3.1 document as `application/json` and `application/yaml`, respectively. `Swagger` fetches the document from `spec_uri`, so register one of the two extensions at that path. Replace existing `Specifications` uses with `SpecificationsJSON`, or use `SpecificationsYAML` when a YAML response is needed. The accuracy of the specification depends on handler `summary`, `description`, `tags`, input content, and response definitions. Consider whether access to status, metrics, and documentation endpoints should be restricted in production.
+`SpecificationsJSON` and `SpecificationsYAML` serve the same OpenAPI 3.1 document by default as `application/json` and `application/yaml`, respectively. `Swagger` fetches the document from `spec_uri`, so register one of the two extensions at that path. Replace existing `Specifications` uses with `SpecificationsJSON`, or use `SpecificationsYAML` when a YAML response is needed. The accuracy of the specification depends on handler `summary`, `description`, `tags`, input content, and response definitions. Consider whether access to status, metrics, and documentation endpoints should be restricted in production.
+
+## Select an OpenAPI version and declare 3.2 features
+
+Select the OpenAPI version with a document generator. Existing calls continue to use 3.1. When you need 3.2 features, pass a `Specifications32` instance to either the JSON or YAML extension.
+
+```python
+from RedStar.Extensions import (
+  Specifications32,
+  SpecificationsJSON,
+  SpecificationsYAML,
+)
+
+
+json_specification = SpecificationsJSON(
+  '/openapi.json',
+  specification=Specifications32(),
+)
+yaml_specification = SpecificationsYAML(
+  '/openapi.yaml',
+  specification=Specifications32(),
+)
+```
+
+`Specifications31` and `Specifications32` select document format and operation semantics. In 3.2, `QUERY` becomes the fixed `query` operation, while custom methods such as `LINK` are placed under `additionalOperations` on their Path Item. Version 3.1 retains the existing `x-redstar-operations` representation for custom methods.
+
+### The entire query string
+
+An existing `QueryString` declaration continues to generate one `in: query` parameter per key. To describe the entire query string as one content-based parameter, specify both `name` and `content`. RedStar parses request query data using `application/x-www-form-urlencoded` rules before validating `request.qs`, so this declaration is restricted to that media type.
+
+```python
+from RedStar import Content, QueryString
+from RedStar.Descriptor import Integer, Object, Properties
+from RedStar.Validator.Patterns import ToInteger
+
+
+filters = QueryString(
+  {'limit': ToInteger()},
+  requires='limit',
+  name='filters',
+  content=Content(
+    'application/x-www-form-urlencoded',
+    Object(properties=Properties(limit=Integer())),
+  ),
+)
+```
+
+Keep the content schema consistent with the existing `QueryString` validator. A missing name or content, or a different media type, is rejected. This parameter can only be represented by OpenAPI 3.2, so the 3.1 generator raises an error instead of silently omitting it.
+
+### Sequential bodies and discriminators
+
+`Content.item_schema` declares the schema for each sequential item. Supported media types are `text/event-stream`, `application/jsonl`, `application/json-seq`, and `multipart/mixed`. The same `Content` model is used by `Body` and `ResponseSpecification`, so it can be declared for both requests and responses. A named `Schema` produces a reference in `components/schemas`.
+
+```python
+from RedStar import Body, Content, ResponseSpecification
+from RedStar.Descriptor import Integer, Object, Properties, Schema
+from RedStar.IO.Readers import StreamContentReader
+
+
+request_body = Body(
+  StreamContentReader(),
+  content=Content(
+    'application/jsonl',
+    item_schema=Schema(
+      'Event',
+      Object(properties=Properties(id=Integer())),
+    ),
+  ),
+)
+response = ResponseSpecification(
+  200,
+  'Event stream',
+  Content(
+    'text/event-stream',
+    item_schema=Object(properties=Properties(id=Integer())),
+  ),
+)
+```
+
+Use `item_encoding` and `prefix_encoding` only with multipart content, and provide either `item_schema` or an array schema. The former accepts one encoding object; the latter accepts a sequence of positional encoding objects. They can also be used with an array schema in `multipart/form-data`.
+
+`OneOf` converts its `discriminator` string to OpenAPI `propertyName` and supports `mapping` and the 3.2-only `default_mapping`. Declare the default and named schemas through the existing `Descriptor` API. The 3.1 generator raises an error if `default_mapping` is specified.
+
+| OpenAPI 3.2 change | RedStar support |
+| --- | --- |
+| `QUERY`, `additionalOperations` | Supported |
+| `querystring` | Supported with `application/x-www-form-urlencoded` content |
+| Sequential `itemSchema` | Supported for the four media types listed above |
+| `itemEncoding`, `prefixEncoding` | Supported for multipart content with schema validation |
+| Discriminator `mapping`, `defaultMapping` | Supported; `default_mapping` is limited to 3.2 |
+| Tag/Server metadata, generic cookie parameters | Excluded; no corresponding public declarations |
+| OAuth2 device authorization/metadata, extended Example Objects, `$self` | Excluded; no corresponding public declarations |
+| HTTP chunked framing, WebSocket, custom sequential media types | Outside this issue's scope |
 
 An extension instance can belong to only one `Application`. Do not share an instance across applications; create a fresh instance for each one. A custom extension can implement the `Extension` contract and provide request, response, error, startup, and cleanup hooks.
 

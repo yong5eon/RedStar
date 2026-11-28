@@ -7,6 +7,8 @@ from .Metrics import (
 from .Specifications import (
 	SpecificationsJSON,
 	SpecificationsYAML,
+	Specifications31,
+	Specifications32,
 )
 from .Swagger import Swagger
 from .File import File
@@ -18,6 +20,8 @@ __all__ = (
 	'Metrics',
 	'SpecificationsJSON',
 	'SpecificationsYAML',
+	'Specifications31',
+	'Specifications32',
 	'Swagger',
 	'File',
 	'FileSystem',

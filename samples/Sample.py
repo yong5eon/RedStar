@@ -34,6 +34,7 @@ from RedStar.Extensions import (
 	Status,
 	Ping,
 	Metrics,
+	Specifications32,
 	SpecificationsJSON,
 	SpecificationsYAML,
 	Swagger,
@@ -237,6 +238,7 @@ def create_application() -> Application:
 			SpecificationsJSON(
 				'/api/doc/json',
 				title='RedStar HTTP Sample',
+				specification=Specifications32(),
 			),
 			Swagger(
 				'/swagger/json',
@@ -246,6 +248,7 @@ def create_application() -> Application:
 			SpecificationsYAML(
 				'/api/doc/yaml',
 				title='RedStar HTTP Sample',
+				specification=Specifications32(),
 			),
 			Swagger(
 				'/swagger/yaml',

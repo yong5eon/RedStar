@@ -77,7 +77,15 @@ def schema_value(
 			key = 'allOf'
 		else:
 			raise TypeError('Unsupported schema condition: ' + type(value).__name__)
-		return {key: [schema_value(arg) for arg in value.args]}
+		result = {key: [schema_value(arg) for arg in value.args]}
+		if isinstance(value, OneOf) and value.discriminator is not None:
+			discriminator = {'propertyName': value.discriminator}
+			if value.mapping is not None:
+				discriminator['mapping'] = dict(value.mapping)
+			if value.default_mapping is not None:
+				discriminator['defaultMapping'] = value.default_mapping
+			result['discriminator'] = discriminator
+		return result
 	if isinstance(
 		value,
 		Mapping,
