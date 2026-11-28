@@ -1002,6 +1002,205 @@ class SpecTests(TestCase):
 		)
 		return
 
+	def test_openapi_31_rejects_32_content_fields_in_raw_response_mappings(self):
+		class RawResponse(
+			RequestRunner,
+			method='GET',
+			url='/raw-response',
+			response={
+				'200': {
+					'description': 'Events',
+					'content': {
+						'multipart/mixed': {
+							'itemSchema': {'type': 'object'},
+							'itemEncoding': {'contentType': 'application/json'},
+							'prefixEncoding': [
+								{'contentType': 'text/plain'},
+							],
+						},
+					},
+				},
+			},
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON('/spec')
+		app = Application(exts=(specification,))
+		app.add(RawResponse)
+		app.start()
+		self.addCleanup(app.stop)
+		with self.assertRaisesRegex(ValueError, 'sequential content fields'):
+			specification.document()
+		return
+
+	def test_openapi_31_rejects_default_mapping_in_raw_response_schema(self):
+		class RawResponse(
+			RequestRunner,
+			method='GET',
+			url='/raw-response',
+			response={
+				'200': {
+					'description': 'Animals',
+					'content': {
+						'application/json': {
+							'schema': {
+								'oneOf': [{'type': 'object'}],
+								'discriminator': {
+									'propertyName': 'kind',
+									'defaultMapping': '#/components/schemas/Unknown',
+								},
+							},
+						},
+					},
+				},
+			},
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON('/spec')
+		app = Application(exts=(specification,))
+		app.add(RawResponse)
+		app.start()
+		self.addCleanup(app.stop)
+		with self.assertRaisesRegex(ValueError, 'defaultMapping'):
+			specification.document()
+		return
+
+	def test_openapi_31_does_not_validate_example_data_as_schema(self):
+		class RawResponse(
+			RequestRunner,
+			method='GET',
+			url='/raw-response',
+			response={
+				'200': {
+					'description': 'Example',
+					'content': {
+						'application/json': {
+							'schema': {
+								'type': 'object',
+								'example': {
+									'discriminator': {
+										'defaultMapping': 'example data',
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON('/spec')
+		app = Application(exts=(specification,))
+		app.add(RawResponse)
+		app.start()
+		self.addCleanup(app.stop)
+		document = specification.document()
+		schema = document['paths']['/raw-response']['get']['responses']['200']['content']['application/json']['schema']
+		self.assertEqual(
+			schema['example'],
+			{'discriminator': {'defaultMapping': 'example data'}},
+		)
+		return
+
+	def test_openapi_32_validates_raw_response_content(self):
+		class RawResponse(
+			RequestRunner,
+			method='GET',
+			url='/raw-response',
+			response={
+				'200': {
+					'description': 'Events',
+					'content': {
+						'multipart/mixed': {
+							'itemSchema': {'type': 'object'},
+							'itemEncoding': {'contentType': 'application/json'},
+							'prefixEncoding': [
+								{'contentType': 'text/plain'},
+							],
+						},
+						'application/json': {
+							'schema': {
+								'oneOf': [{'type': 'object'}],
+								'discriminator': {
+									'propertyName': 'kind',
+									'defaultMapping': '#/components/schemas/Unknown',
+								},
+							},
+						},
+					},
+				},
+			},
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON(
+			'/spec',
+			specification=Specifications32(),
+		)
+		app = Application(exts=(specification,))
+		app.add(RawResponse)
+		app.start()
+		self.addCleanup(app.stop)
+		document = specification.document()
+		content = document['paths']['/raw-response']['get']['responses']['200']['content']
+		self.assertEqual(
+			content['multipart/mixed']['itemSchema'],
+			{'type': 'object'},
+		)
+		self.assertEqual(
+			content['multipart/mixed']['itemEncoding'],
+			{'contentType': 'application/json'},
+		)
+		self.assertEqual(
+			content['multipart/mixed']['prefixEncoding'],
+			[{'contentType': 'text/plain'}],
+		)
+		self.assertEqual(
+			content['application/json']['schema']['discriminator']['defaultMapping'],
+			'#/components/schemas/Unknown',
+		)
+		return
+
+	def test_openapi_32_rejects_invalid_raw_response_content(self):
+		class RawResponse(
+			RequestRunner,
+			method='GET',
+			url='/raw-response',
+			response={
+				'200': {
+					'description': 'Events',
+					'content': {
+						'multipart/mixed': {
+							'itemEncoding': {'contentType': 'application/json'},
+						},
+					},
+				},
+			},
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON(
+			'/spec',
+			specification=Specifications32(),
+		)
+		app = Application(exts=(specification,))
+		app.add(RawResponse)
+		app.start()
+		self.addCleanup(app.stop)
+		with self.assertRaisesRegex(
+			ValueError,
+			'require item_schema or an array schema',
+		):
+			specification.document()
+		return
+
 	def test_openapi_32_rejects_multipart_encoding_without_array_schema(self):
 		class Invalid(
 			RequestRunner,

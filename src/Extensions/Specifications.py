@@ -110,6 +110,39 @@ class SpecificationsGenerator:
 	) -> None:
 		return
 
+	def validate_response_content(
+		self,
+		media_type: str,
+		value: Mapping[str, object],
+	) -> None:
+		content = Content(
+			format=media_type,
+			schema=value.get('schema'),
+			item_schema=value.get('itemSchema'),
+			item_encoding=value.get('itemEncoding'),
+			prefix_encoding=value.get('prefixEncoding'),
+		)
+		self.validate_content(content)
+		self.validate_schema(content.schema)
+		self.validate_schema(content.item_schema)
+		return
+
+	def validate_response_mapping(
+		self,
+		value: Mapping[str, object],
+	) -> None:
+		content = value.get('content')
+		if isinstance(content, Mapping):
+			for media_type, item in content.items():
+				if isinstance(media_type, str) and isinstance(item, Mapping):
+					self.validate_response_content(media_type, item)
+		headers = value.get('headers')
+		if isinstance(headers, Mapping):
+			for header in headers.values():
+				if isinstance(header, Mapping):
+					self.validate_schema(header.get('schema'))
+		return
+
 	def contents(
 		self,
 		value: object,
@@ -158,6 +191,7 @@ class SpecificationsGenerator:
 				elif isinstance(response, Mapping):
 					if not isinstance(response.get('description'), str):
 						raise ValueError('OpenAPI responses require a description')
+					self.validate_response_mapping(response)
 					result[str(code)] = deepcopy(dict(response))
 				else:
 					raise TypeError('Response mappings require description strings or OpenAPI response objects')
@@ -390,9 +424,48 @@ class Specifications31(SpecificationsGenerator):
 			discriminator = value.get('discriminator')
 			if isinstance(discriminator, Mapping) and 'defaultMapping' in discriminator:
 				raise ValueError('OpenAPI 3.1 does not support discriminator defaultMapping')
-			for item in value.values():
-				self.validate_schema(item)
-		elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+			for key in (
+				'$defs',
+				'definitions',
+				'dependentSchemas',
+				'patternProperties',
+				'properties',
+			):
+				schemas = value.get(key)
+				if isinstance(schemas, Mapping):
+					for schema in schemas.values():
+						self.validate_schema(schema)
+			for key in (
+				'allOf',
+				'anyOf',
+				'oneOf',
+				'prefixItems',
+			):
+				schemas = value.get(key)
+				if isinstance(schemas, Sequence) and not isinstance(
+					schemas,
+					(str, bytes, bytearray),
+				):
+					for schema in schemas:
+						self.validate_schema(schema)
+			for key in (
+				'additionalProperties',
+				'contains',
+				'contentSchema',
+				'else',
+				'if',
+				'items',
+				'not',
+				'propertyNames',
+				'then',
+				'unevaluatedItems',
+				'unevaluatedProperties',
+			):
+				self.validate_schema(value.get(key))
+		elif isinstance(value, Sequence) and not isinstance(
+			value,
+			(str, bytes, bytearray),
+		):
 			for item in value:
 				self.validate_schema(item)
 		return
@@ -407,6 +480,19 @@ class Specifications31(SpecificationsGenerator):
 			or value.prefix_encoding is not None
 		):
 			raise ValueError('OpenAPI 3.1 does not support sequential content fields')
+		return
+
+	def validate_response_content(
+		self,
+		media_type: str,
+		value: Mapping[str, object],
+	) -> None:
+		if any(
+			key in value
+			for key in ('itemSchema', 'itemEncoding', 'prefixEncoding')
+		):
+			raise ValueError('OpenAPI 3.1 does not support sequential content fields')
+		super().validate_response_content(media_type, value)
 		return
 
 	def querystring_parameter(
