@@ -42,6 +42,23 @@ class DescriptorTests(TestCase):
 		})
 		return
 
+	def test_schema_to_dict_serializes_discriminator_metadata(self):
+		schema = Schema('Discriminated', OneOf(
+			String(),
+			discriminator='kind',
+			mapping={'cat': '#/components/schemas/Cat'},
+			default_mapping='#/components/schemas/Unknown',
+		))
+		self.assertEqual(schema_to_dict(schema), {
+			'oneOf': [{'type': 'string'}],
+			'discriminator': {
+				'propertyName': 'kind',
+				'mapping': {'cat': '#/components/schemas/Cat'},
+				'defaultMapping': '#/components/schemas/Unknown',
+			},
+		})
+		return
+
 	def test_schema_to_dict_rejects_invalid_values(self):
 		with self.assertRaisesRegex(TypeError, 'A Schema is required'):
 			schema_to_dict({})

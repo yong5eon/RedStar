@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from typing import (
 	Any,
+	Mapping,
 	Optional,
+	Sequence,
 )
 
 __all__ = (
@@ -16,3 +18,6 @@ class Content:
 	format: str
 	schema: Optional[object] = None
 	example: Any = None
+	item_schema: Optional[object] = None
+	item_encoding: Optional[Mapping[str, object]] = None
+	prefix_encoding: Optional[Sequence[Mapping[str, object]]] = None

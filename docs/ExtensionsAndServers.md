@@ -43,7 +43,99 @@ application = Application(exts=(
 ))
 ```
 
-`SpecificationsJSON`과 `SpecificationsYAML`은 같은 OpenAPI 3.1 문서를 각각 `application/json`과 `application/yaml`로 제공합니다. `Swagger`는 지정한 `spec_uri`에서 문서를 가져오므로 그 경로에 두 확장 중 하나를 등록하세요. 기존 `Specifications` 사용은 `SpecificationsJSON`으로 바꾸거나 YAML 응답이 필요하면 `SpecificationsYAML`을 사용하세요. 명세의 정확도는 handler의 `summary`, `description`, `tags`, 입력 콘텐츠와 응답 정의에 달려 있습니다. 운영에서 상태·지표·문서 endpoint에 대한 접근을 제한해야 하는지 검토하세요.
+`SpecificationsJSON`과 `SpecificationsYAML`은 기본적으로 같은 OpenAPI 3.1 문서를 각각 `application/json`과 `application/yaml`로 제공합니다. `Swagger`는 지정한 `spec_uri`에서 문서를 가져오므로 그 경로에 두 확장 중 하나를 등록하세요. 기존 `Specifications` 사용은 `SpecificationsJSON`으로 바꾸거나 YAML 응답이 필요하면 `SpecificationsYAML`을 사용하세요. 명세의 정확도는 handler의 `summary`, `description`, `tags`, 입력 콘텐츠와 응답 정의에 달려 있습니다. 운영에서 상태·지표·문서 endpoint에 대한 접근을 제한해야 하는지 검토하세요.
+
+## OpenAPI 버전 선택과 3.2 선언
+
+OpenAPI 버전은 문서 생성기로 선택합니다. 기존 호출은 계속 3.1을 사용하며, 3.2 기능이 필요할 때 `Specifications32` 인스턴스를 JSON 또는 YAML 확장에 전달합니다.
+
+```python
+from RedStar.Extensions import (
+  Specifications32,
+  SpecificationsJSON,
+  SpecificationsYAML,
+)
+
+
+json_specification = SpecificationsJSON(
+  '/openapi.json',
+  specification=Specifications32(),
+)
+yaml_specification = SpecificationsYAML(
+  '/openapi.yaml',
+  specification=Specifications32(),
+)
+```
+
+`Specifications31`과 `Specifications32`는 문서 형식과 operation 의미를 선택합니다. `QUERY`는 3.2에서 고정 `query` operation으로 생성되며, `LINK` 같은 사용자 정의 메서드는 해당 Path Item의 `additionalOperations`에 들어갑니다. 3.1은 기존 사용자 정의 메서드 표현인 `x-redstar-operations`를 유지합니다.
+
+### 전체 query string
+
+기존 `QueryString` 선언은 계속 각 key를 별도의 `in: query` parameter로 만듭니다. 전체 query string을 하나의 content 기반 parameter로 표현하려면 새 `name`과 `content`를 함께 지정하세요. RedStar는 요청 query를 `application/x-www-form-urlencoded` 규칙으로 파싱해 `request.qs`를 검증하므로 이 선언도 해당 media type만 받습니다.
+
+```python
+from RedStar import Content, QueryString
+from RedStar.Descriptor import Integer, Object, Properties
+from RedStar.Validator.Patterns import ToInteger
+
+
+filters = QueryString(
+  {'limit': ToInteger()},
+  requires='limit',
+  name='filters',
+  content=Content(
+    'application/x-www-form-urlencoded',
+    Object(properties=Properties(limit=Integer())),
+  ),
+)
+```
+
+`content`의 schema는 기존 `QueryString` validator와 일치하게 유지하세요. 이름과 content가 짝을 이루지 않거나 다른 media type을 사용하면 선언이 거부됩니다. 이 parameter는 OpenAPI 3.2에서만 표현할 수 있으므로 3.1 generator는 조용히 생략하지 않고 오류를 냅니다.
+
+### 순차 본문과 discriminator
+
+`Content.item_schema`는 각 순차 항목의 schema를 선언합니다. 지원 media type은 `text/event-stream`, `application/jsonl`, `application/json-seq`, `multipart/mixed`입니다. `Body`와 `ResponseSpecification`에서 같은 `Content` 모델을 사용하므로 요청과 응답에 각각 선언할 수 있고, `Schema`로 이름을 지정하면 `components/schemas` 참조를 생성합니다.
+
+```python
+from RedStar import Body, Content, ResponseSpecification
+from RedStar.Descriptor import Integer, Object, Properties, Schema
+from RedStar.IO.Readers import StreamContentReader
+
+
+request_body = Body(
+  StreamContentReader(),
+  content=Content(
+    'application/jsonl',
+    item_schema=Schema(
+      'Event',
+      Object(properties=Properties(id=Integer())),
+    ),
+  ),
+)
+response = ResponseSpecification(
+  200,
+  'Event stream',
+  Content(
+    'text/event-stream',
+    item_schema=Object(properties=Properties(id=Integer())),
+  ),
+)
+```
+
+`item_encoding`과 `prefix_encoding`은 multipart content에서만 사용하며 `item_schema` 또는 배열 schema가 필요합니다. 전자는 인코딩 객체 하나를, 후자는 위치별 인코딩 객체의 시퀀스를 받습니다. `multipart/form-data`의 배열 schema에서도 사용할 수 있습니다.
+
+`OneOf`는 `discriminator` 문자열을 OpenAPI `propertyName`으로 변환하고 `mapping`과 3.2 전용 `default_mapping`을 지원합니다. 기본 schema와 named schema는 기존 `Descriptor` 선언으로 제공하며, 3.1에서 `default_mapping`을 지정하면 오류가 발생합니다.
+
+| OpenAPI 3.2 변경 | RedStar 지원 범위 |
+| --- | --- |
+| `QUERY`, `additionalOperations` | 지원 |
+| `querystring` | `application/x-www-form-urlencoded` content로 지원 |
+| 순차 `itemSchema` | 위에 열거한 네 가지 media type에서 지원 |
+| `itemEncoding`, `prefixEncoding` | multipart content에서 schema 조건을 검사해 지원 |
+| discriminator `mapping`, `defaultMapping` | 지원. `default_mapping`은 3.2에서만 허용 |
+| Tag/Server 메타데이터, 일반 cookie parameter | 대응하는 공개 선언이 없어 제외 |
+| OAuth2 device authorization·metadata, 확장 Example Object, `$self` | 대응하는 공개 선언이 없어 제외 |
+| HTTP chunked framing, WebSocket, 사용자 정의 sequential media type | 이슈 범위에서 제외 |
 
 확장 인스턴스는 하나의 `Application`에만 등록할 수 있습니다. 여러 애플리케이션에서 같은 인스턴스를 공유하지 말고 각 앱마다 새 인스턴스를 만드세요. 사용자 정의 확장은 `Extension` 계약을 구현하고 요청, 응답, 오류 및 시작·정리 훅을 제공할 수 있습니다.
 

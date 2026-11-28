@@ -366,11 +366,11 @@ class SampleTests(TestCase):
 					self.assertEqual(headers['Content-Type'], mime)
 			status, headers, data = self.call(address, 'GET', '/api/doc/json')
 			self.assertEqual(status, 200)
-			self.assertEqual(loads(data)['openapi'], '3.1.0')
+			self.assertEqual(loads(data)['openapi'], '3.2.0')
 			status, headers, data = self.call(address, 'GET', '/api/doc/yaml')
 			self.assertEqual(status, 200)
 			self.assertEqual(headers['Content-Type'], 'application/yaml')
-			self.assertEqual(safe_load(data)['openapi'], '3.1.0')
+			self.assertEqual(safe_load(data)['openapi'], '3.2.0')
 			for url, spec_uri, title in (
 				(
 					'/swagger/json',

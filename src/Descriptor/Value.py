@@ -11,6 +11,7 @@ from typing import (
 	ValuesView,
 	Optional,
 	Dict,
+	Mapping,
 	Union,
 	Iterable,
 )
@@ -154,10 +155,32 @@ class OneOf(Condition):
 		*args: Union[Descriptor, Condition, Schema],
 		discriminator: Optional[str] = None,
 		required: bool = True,
+		mapping: Optional[Mapping[str, str]] = None,
+		default_mapping: Optional[str] = None,
 	) -> None:
+		if discriminator is not None and (
+			not isinstance(discriminator, str) or not discriminator
+		):
+			raise ValueError('discriminator must be a non-empty property name')
+		if mapping is not None and (
+			not isinstance(mapping, Mapping)
+			or any(
+				not isinstance(key, str) or not isinstance(value, str)
+				for key, value in mapping.items()
+			)
+		):
+			raise TypeError('discriminator mapping must map strings to strings')
+		if default_mapping is not None and (
+			not isinstance(default_mapping, str) or not default_mapping
+		):
+			raise ValueError('default_mapping must be a non-empty string')
+		if (mapping is not None or default_mapping is not None) and discriminator is None:
+			raise ValueError('discriminator property name is required with mapping values')
 		super().__init__(*args)
 		self.discriminator = discriminator
 		self.required = required
+		self.mapping = dict(mapping) if mapping is not None else None
+		self.default_mapping = default_mapping
 		return
 
 

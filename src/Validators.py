@@ -14,6 +14,7 @@ from .Error import (
 	ClientError,
 	Error,
 )
+from .Content import Content
 from .Request import Request
 from .Validator import (
 	Pattern,
@@ -193,13 +194,26 @@ class QueryString(Parameters):
 		requires: Union[str, Sequence[str], None] = None,
 		requiresError: Optional[Error] = None,
 		format: Optional[Mapping[str, object]] = None,
+		*,
+		name: Optional[str] = None,
+		content: Optional[Content] = None,
 	):
 		super().__init__(
 			qs,
 			format=format,
 		)
+		if (name is None) != (content is None):
+			raise ValueError('querystring name and content must be specified together')
+		if name is not None and (not isinstance(name, str) or not name):
+			raise ValueError('querystring name must be a non-empty string')
+		if content is not None and not isinstance(content, Content):
+			raise TypeError('querystring content must be a Content instance')
+		if content is not None and content.format.lower() != 'application/x-www-form-urlencoded':
+			raise ValueError('querystring content must use application/x-www-form-urlencoded')
 		keys = (requires,) if isinstance(requires, str) else tuple(requires or ())
 		self.required_keys = keys
+		self.name = name
+		self.content = content
 		self.va = Validator(
 			IsRequiredIn(
 				*keys,

@@ -30,8 +30,10 @@ from RedStar.Credentials import (
 	OAuth2Password,
 )
 from RedStar.Descriptor import (
+	Array,
 	Integer,
 	Object,
+	OneOf,
 	Properties,
 	Schema,
 	String,
@@ -42,6 +44,8 @@ from RedStar.Extensions import (
 	Metrics,
 	SpecificationsJSON,
 	SpecificationsYAML,
+	Specifications31,
+	Specifications32,
 	Swagger,
 )
 from RedStar.IO.Readers import (
@@ -734,6 +738,300 @@ class SpecTests(TestCase):
 		self.assertEqual(example, expected_example)
 		return
 
+	def test_openapi_32_query_custom_methods_and_sequential_content(self):
+		class Search(
+			RequestRunner,
+			method='QUERY',
+			url='/search',
+			qs=QueryString(
+				{'filter': ToInteger()},
+				requires='filter',
+				name='advancedQuery',
+				content=Content(
+					'application/x-www-form-urlencoded',
+					Object(properties=Properties(filter=Integer())),
+				),
+			),
+			body=Body(
+				StreamContentReader(),
+				content=Content(
+					'application/jsonl',
+					item_schema=Schema(
+						'SearchItem',
+						Object(properties=Properties(id=Integer())),
+					),
+				),
+			),
+			response=ResponseSpecification(
+				200,
+				'Search results',
+				(
+					Content(
+						'text/event-stream',
+						item_schema=Object(properties=Properties(id=Integer())),
+					),
+					Content(
+						'multipart/mixed',
+						item_schema=Object(properties=Properties(id=Integer())),
+						item_encoding={'contentType': 'application/json'},
+						prefix_encoding=({'contentType': 'text/plain'},),
+					),
+					Content(
+						'multipart/form-data',
+						Array(format=Object(properties=Properties(id=Integer()))),
+						item_encoding={'contentType': 'application/json'},
+						prefix_encoding=({'contentType': 'text/plain'},),
+					),
+					Content(
+						'application/vnd.redstar.animal+json',
+						Schema(
+							'Animal',
+							OneOf(
+								Object(properties=Properties(kind=String())),
+								discriminator='kind',
+								mapping={'fallback': '#/components/schemas/Unknown'},
+								default_mapping='#/components/schemas/Unknown',
+							),
+						),
+					),
+					Content(
+						'application/vnd.redstar.unknown+json',
+						Schema(
+							'Unknown',
+							Object(properties=Properties(kind=String())),
+						),
+					),
+				),
+			),
+		):
+			def run(self, req):
+				return Response()
+
+		class Link(
+			RequestRunner,
+			method='LINK',
+			url='/search',
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON(
+			'/spec',
+			specification=Specifications32(),
+		)
+		yaml_specification = SpecificationsYAML(
+			'/spec.yaml',
+			specification=Specifications32(),
+		)
+		app = Application(exts=(
+			specification,
+			yaml_specification,
+		))
+		app.add(Search)
+		app.add(Link)
+		app.start()
+		self.addCleanup(app.stop)
+		document = specification.document()
+		self.assertEqual(document['openapi'], '3.2.0')
+		path_item = document['paths']['/search']
+		self.assertIn('query', path_item)
+		self.assertEqual(path_item['additionalOperations']['LINK']['operationId'], 'LINK:/search')
+		operation = path_item['query']
+		self.assertEqual(operation['parameters'], [{
+			'name': 'advancedQuery',
+			'in': 'querystring',
+			'required': True,
+			'content': {
+				'application/x-www-form-urlencoded': {
+					'schema': {
+						'type': 'object',
+						'properties': {'filter': {'type': 'integer'}},
+						'required': ['filter'],
+					},
+				},
+			},
+		}])
+		self.assertEqual(
+			operation['requestBody']['content']['application/jsonl']['itemSchema'],
+			{'$ref': '#/components/schemas/SearchItem'},
+		)
+		self.assertEqual(
+			operation['responses']['200']['content']['text/event-stream']['itemSchema'],
+			{
+				'type': 'object',
+				'properties': {'id': {'type': 'integer'}},
+				'required': ['id'],
+			},
+		)
+		multipart = operation['responses']['200']['content']['multipart/mixed']
+		self.assertEqual(multipart['itemEncoding'], {'contentType': 'application/json'})
+		self.assertEqual(multipart['prefixEncoding'], [{'contentType': 'text/plain'}])
+		form_data = operation['responses']['200']['content']['multipart/form-data']
+		self.assertEqual(form_data['schema']['type'], 'array')
+		self.assertEqual(form_data['itemEncoding'], {'contentType': 'application/json'})
+		self.assertEqual(form_data['prefixEncoding'], [{'contentType': 'text/plain'}])
+		self.assertNotIn('x-redstar-operations', document)
+		self.assertEqual(document['components']['schemas']['SearchItem'], {
+			'type': 'object',
+			'properties': {'id': {'type': 'integer'}},
+			'required': ['id'],
+		})
+		self.assertEqual(document['components']['schemas']['Animal']['discriminator'], {
+			'propertyName': 'kind',
+			'mapping': {'fallback': '#/components/schemas/Unknown'},
+			'defaultMapping': '#/components/schemas/Unknown',
+		})
+		json_response = app(request('/spec'))
+		yaml_response = app(request('/spec.yaml'))
+		self.assertEqual(loads(json_response.body), document)
+		self.assertEqual(safe_load(yaml_response.body), document)
+		return
+
+	def test_openapi_31_rejects_32_only_declarations(self):
+		class Streaming(
+			RequestRunner,
+			method='GET',
+			url='/stream',
+			response=ResponseSpecification(
+				200,
+				'Events',
+				Content(
+					'text/event-stream',
+					item_schema=Object(properties=Properties(id=Integer())),
+				),
+			),
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON('/spec')
+		app = Application(exts=(specification,))
+		app.add(Streaming)
+		app.start()
+		self.addCleanup(app.stop)
+		with self.assertRaisesRegex(ValueError, 'sequential content fields'):
+			specification.document()
+
+		class Query(
+			RequestRunner,
+			method='GET',
+			url='/query',
+			qs=QueryString(
+				{},
+				name='filters',
+				content=Content(
+					'application/x-www-form-urlencoded',
+					Object(properties=Properties()),
+				),
+			),
+		):
+			def run(self, req):
+				return Response()
+
+		query_specification = SpecificationsJSON('/query-spec')
+		query_app = Application(exts=(query_specification,))
+		query_app.add(Query)
+		query_app.start()
+		self.addCleanup(query_app.stop)
+		with self.assertRaisesRegex(ValueError, 'querystring parameters'):
+			query_specification.document()
+
+		class Discriminator(
+			RequestRunner,
+			method='GET',
+			url='/discriminator',
+			response=ResponseSpecification(
+				200,
+				'Discriminated',
+				Content(
+					'application/json',
+					Schema(
+						'Animal',
+						OneOf(
+							Object(properties=Properties(kind=String())),
+							discriminator='kind',
+							default_mapping='#/components/schemas/Animal',
+						),
+					),
+				),
+			),
+		):
+			def run(self, req):
+				return Response()
+
+		discriminator_specification = SpecificationsJSON('/discriminator-spec')
+		discriminator_app = Application(exts=(discriminator_specification,))
+		discriminator_app.add(Discriminator)
+		discriminator_app.start()
+		self.addCleanup(discriminator_app.stop)
+		with self.assertRaisesRegex(ValueError, 'defaultMapping'):
+			discriminator_specification.document()
+		return
+
+	def test_openapi_31_allows_schema_property_named_default_mapping(self):
+		class Example(
+			RequestRunner,
+			method='GET',
+			url='/example',
+			response=ResponseSpecification(
+				200,
+				'Example',
+				Content(
+					'application/json',
+					Schema('Example', {
+						'type': 'object',
+						'properties': {
+							'defaultMapping': {'type': 'string'},
+						},
+					}),
+				),
+			),
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON('/spec')
+		app = Application(exts=(specification,))
+		app.add(Example)
+		app.start()
+		self.addCleanup(app.stop)
+		document = specification.document()
+		self.assertEqual(
+			document['components']['schemas']['Example']['properties']['defaultMapping'],
+			{'type': 'string'},
+		)
+		return
+
+	def test_openapi_32_rejects_multipart_encoding_without_array_schema(self):
+		class Invalid(
+			RequestRunner,
+			method='GET',
+			url='/invalid',
+			response=ResponseSpecification(
+				200,
+				'Invalid',
+				Content(
+					'multipart/form-data',
+					Object(properties=Properties(id=Integer())),
+					item_encoding={'contentType': 'application/json'},
+				),
+			),
+		):
+			def run(self, req):
+				return Response()
+
+		specification = SpecificationsJSON(
+			'/spec',
+			specification=Specifications32(),
+		)
+		app = Application(exts=(specification,))
+		app.add(Invalid)
+		app.start()
+		self.addCleanup(app.stop)
+		with self.assertRaisesRegex(ValueError, 'require item_schema or an array schema'):
+			specification.document()
+		return
+
 	def test_specifications_base_class_is_not_exported(self):
 		extensions = import_module('RedStar.Extensions')
 		specifications = import_module('RedStar.Extensions.Specifications')
@@ -749,6 +1047,10 @@ class SpecTests(TestCase):
 		self.assertIs(extensions.Specifications, specifications)
 		self.assertNotIn('Specifications', specifications.__all__)
 		self.assertEqual(specifications.Specifications.__name__, 'Specifications')
+		for name in ('Specifications31', 'Specifications32'):
+			self.assertEqual(extensions.__all__.count(name), 1)
+			self.assertIs(getattr(extensions, name), getattr(specifications, name))
+			self.assertIn(name, specifications.__all__)
 		return
 
 	def test_auth_schemes_with_same_kind_remain_distinct(self):
